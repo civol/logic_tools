@@ -1,0 +1,3 @@
+~a~b~c~d+~a~bc+~ac~d+b~cd+a~b~c~d+a~bd
+got:  ~ac~d+~b~c~d+~bcd+b~cd
+good: ~b~c~d+b~cd+a~bd+~a~bc+~ac~d
