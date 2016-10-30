@@ -10,23 +10,23 @@ Gem::Specification.new do |spec|
   spec.email         = ["lovic@ariake-nct.ac.jp"]
 
   spec.summary       = %q{A set of tools for processing logic expressions.}
-  spec.description   = %q{LogicTools is a set of command-line tools for processing logic expressions.\n\
-The tools include:\n\
- * simplify:  for simplifying a logic expression.\n\
- * std_conj:  for computing the conjunctive normal form of a logic expression.\n\
- * std_dij:   for computing the disjunctive normal form a of logic expression.\n\
- * truth_tbl: for generating the truth table of a logic expression.\n}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.description   = %Q{LogicTools is a set of command-line tools for processing logic expressions.
+The tools include:
+ * simplify:  for simplifying a logic expression.
+ * std_conj:  for computing the conjunctive normal form of a logic expression.
+ * std_dij:   for computing the disjunctive normal form a of logic expression.
+ * truth_tbl: for generating the truth table of a logic expression.}
+  spec.homepage      = "https://github.com/civol"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "TODO: Set to 'http://mygemserver.com'"
-  else
-    raise "RubyGems 2.0 or newer is required to protect against " \
-      "public gem pushes."
-  end
+  # if spec.respond_to?(:metadata)
+  #   spec.metadata['allowed_push_host'] = "TODO: Set to 'http://mygemserver.com'"
+  # else
+  #   raise "RubyGems 2.0 or newer is required to protect against " \
+  #     "public gem pushes."
+  # end
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
