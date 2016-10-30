@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 ######################################################################
-##              Script for launching the simplify.rb program        ##
+##           Script for launching the simplify_qm.rb program        ##
 ######################################################################
 
 Dir.chdir "../lib/logic_tools"
 
-load "simplify.rb"
+load "simplify_qm.rb"

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
-##############################################################
-# Convert a logic expression to its conjunctive normal form  #
-##############################################################
+#########################################################################
+#   Simplifies a logic expression using the Quine Mc-Cluskey algorithm  #
+#########################################################################
 
 
 # For building logic trees
