@@ -11,10 +11,10 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{A set of tools for processing logic expressions.}
   spec.description   = %Q{LogicTools is a set of command-line tools for processing logic expressions.
-The tools include:
- * simplify:  for simplifying a logic expression.
- * std_conj:  for computing the conjunctive normal form of a logic expression.
- * std_dij:   for computing the disjunctive normal form a of logic expression.
+The tools include:<p>
+ * simplify_qm:  for simplifying a logic expression.<p>
+ * std_conj:  for computing the conjunctive normal form of a logic expression.<p>
+ * std_dij:   for computing the disjunctive normal form a of logic expression.<p>
  * truth_tbl: for generating the truth table of a logic expression.}
   spec.homepage      = "https://github.com/civol"
   spec.license       = "MIT"

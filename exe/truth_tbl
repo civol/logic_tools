@@ -3,6 +3,10 @@
 ##              Script for launching the simplify.rb program        ##
 ######################################################################
 
-Dir.chdir "../lib/logic_tools"
+begin
+    require 'rubygems'
+    gem 'logic_tools'
+rescue LoadError
+end
 
-load "truth_tbl.rb"
+load "logic_tools/truth_tbl.rb"

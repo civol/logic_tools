@@ -5,10 +5,10 @@
 
 
 # For building logic tress
-require "#{Dir.getwd}/logictree.rb"
+require "logic_tools/logictree.rb"
 
 # For parsing the inputs
-require "#{Dir.getwd}/logicparse.rb"
+require "logic_tools/logicparse.rb"
 
 include LogicTools
 

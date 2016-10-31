@@ -3,6 +3,10 @@
 ##           Script for launching the simplify_qm.rb program        ##
 ######################################################################
 
-Dir.chdir "../lib/logic_tools"
+begin
+    require 'rubygems'
+    gem 'logic_tools'
+rescue LoadError
+end
 
-load "simplify_qm.rb"
+load "logic_tools/simplify_qm.rb"

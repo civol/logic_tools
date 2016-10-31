@@ -3,6 +3,10 @@
 ##              Script for launching the simplify.rb program        ##
 ######################################################################
 
-Dir.chdir "../lib/logic_tools"
+begin
+    require 'rubygems'
+    gem 'logic_tools'
+rescue LoadError
+end
 
-load "std_conj.rb"
+load "logic_tools/std_conj.rb"

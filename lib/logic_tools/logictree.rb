@@ -17,7 +17,8 @@ module LogicTools
         attr_reader :value
 
         ## Initialize with a name (the value is set to false)
-        #  @param name the name of the variable
+        #  Params:
+        #  +name+:: the name of the variable
         def initialize(name)
             if @@variables.key?(name.to_s)
                 raise "Variable already present."
@@ -30,7 +31,8 @@ module LogicTools
         end
 
         ## Set the value
-        #  @param value the value to set
+        #  Params:
+        #  +value+:: the value to set
         def value=(value)
             if (value.respond_to?(:to_i))
                 @value = value.to_i == 0 ? false : true
@@ -40,12 +42,15 @@ module LogicTools
         end
 
         ## Checks if a variables exists
+        #  Params:
+        #  +name+:: the name of the variable to check
         def Variable.exists?(name)
             return @@variables.has_key?(name.to_s)
         end
 
         ## Get a variable by name, if not existing creates it.
-        #  @param name the name of the variable
+        #  Params:
+        #  +name+:: the name of the variable to get
         def Variable.get(name)
             var = @@variables[name.to_s]
             # print "Got var=#{var.to_s} with value=#{var.value}\n" if var
@@ -63,7 +68,7 @@ module LogicTools
             to_s
         end
 
-        # For comparison
+        ## For comparison
         def <=>(b)
             self.to_s <=> b.to_s
         end
@@ -74,7 +79,7 @@ module LogicTools
         include Enumerable
 
         ## Get the variables of the tree
-        #  @return the variables into an array, sorted by name
+        #  Return: the variables into an array, sorted by name
         def getVariables()
             result = self.getVariablesRecurse
             return result.flatten.uniq.sort
@@ -91,10 +96,11 @@ module LogicTools
             0
         end
 
-        ## Iterate on each truth table line.<br>
+        ## Iterate on each truth table line.
+        #  TODO: generate an Enumerator.
         #  Iteration parameters:
-        #  @param vars the variables of the expression
-        #  @param val the value
+        #  vars: the variables of the expression
+        #  val:  the value
         def each_line
             # Get the variables
             vars = self.getVariables
@@ -112,16 +118,18 @@ module LogicTools
             end
         end
 
-        ## Iterate over each minterm.<br>
+        ## Iterate over each minterm.
+        #  TODO: generate an Enumerator.
         #  Iteration parameters:
-        #  @param vars the variables of the expression
+        #  vars: the variables of the expression
         def each_minterm
             each_line { |vars,val| yield(vars) if val }
         end
 
-        ## Iterate over each maxterm.<br>
+        ## Iterate over each maxterm.
+        #  TODO: generate an Enumerator.
         #  Iteration parameters:
-        #  @param vars the variables of the expression
+        #  vars: the variables of the expression
         def each_maxterm
             each_line do |vars,val|
                 unless val then
@@ -132,6 +140,7 @@ module LogicTools
         end
 
         ## Iterate on the sons (if any, by default: none)
+        #  TODO: generate an Enumerator.
         def each
         end
 
@@ -179,17 +188,18 @@ module LogicTools
             return self.dup
         end
 
-        ## Flatten hierachical ands, ors and nots
-        #  @return the new tree
-        #  Default: simply duplicate
+        ## Flatten hierachical ands, ors and nots.
+        #  Default: simply duplicate.
+        #  Return: the new tree
         def flatten_deep
             return self.dup
         end
 
-        ## Distribute over a given operator
-        #  @param dop the operator to distribute over
-        #  @param node the node to distribute with
-        # Default distribution: self is unary
+        ## Distribute over a given operator.
+        #  Default distribution: self is unary.
+        #  Params:
+        #  +dop+:: the operator to distribute over
+        #  +node+:: the node to distribute with
         def distribute(dop,node)
             fop = dop == :and ? :or : :and
             # print "dop=#{dop}, fop=#{fop}, node.op=#{node.op}\n"
@@ -209,8 +219,9 @@ module LogicTools
         end
 
         ## Convert to a sum of product
-        #  @param flattened tell if the tree is already flattend
-        #  @return the conversion result
+        #  Params:
+        #  +flattened+:: tell if the tree is already flattend
+        #  Return: the conversion result
         def to_sum_product(flattened = false)
             return self.dup
         end
@@ -235,69 +246,72 @@ module LogicTools
         end
     end
 
-    # A Value node
+    ## A Value node
     class NodeValue < Node
 
         protected
-        ## Build with a value
-        #  @param value the value
+        ## Build with a value.
+        #  Params:
+        #  +value+:: the value
         def initialize(value)
             @value = value
             @sym = @value.to_s.to_sym
         end
         public
 
-        ## Get the variables, recursively, without postprocessing
-        #  @return the variables into sets of arrays with possible doublon
+        ## Get the variables, recursively, without postprocessing.
+        #  Return: the variables into sets of arrays with possible doublon
         def getVariablesRecurse()
             return [ ]
         end
 
-        ## Compare with another node
-        #  @param n the node to compare with
+        ## Compare with another node.
+        #  Params:
+        #  +n+:: the node to compare with
         def ==(n)
             return false unless n.is_a?(NodeValue)
             return self.eval() == n.eval()
         end
 
-        ## Evaluates
+        ## Evaluate.
         def eval
             return @value
         end
 
-        ## Convert to a symbol
+        ## Convert to a symbol.
         def to_sym
             return @sym
         end
 
-        ## Converts to a string
+        ## Converts to a string.
         def to_s
             return @value.to_s
         end
     end
 
-    # A true node
+    ## A true node
     class NodeTrue < NodeValue
-        ## Intialize as a NodeValue whose value is true
+        ## Intialize as a NodeValue whose value is true.
         def initialize
             super(true)
         end
     end
 
-    # A false node
+    ## A false node
     class NodeFalse < NodeValue
-        ## Intialize as a NodeValue whose value is false
+        ## Intialize as a NodeValue whose value is false.
         def initialize
             super(false)
         end
     end
 
-    # A variable node
+    ## A variable node
     class NodeVar < Node
         attr_reader :variable
 
-        ## Initialize with the variable name
-        #  @param name the name of the variable
+        ## Initialize with the variable name.
+        #  Params:
+        #  +name+:: the name of the variable
         def initialize(name)
             @variable = Variable.get(name)
             @sym = @variable.to_s.to_sym
@@ -314,13 +328,14 @@ module LogicTools
         end
 
         ## Get the variables, recursively, without postprocessing
-        #  @return the variables into sets of arrays with possible doublon
+        #  Return: the variables into sets of arrays with possible doublon
         def getVariablesRecurse()
             return [ @variable ]
         end
 
         ## Compare with another node
-        #  @param n the node to compare with
+        #  Params:
+        #  +n+:: the node to compare with
         def ==(n)
             return false unless n.is_a?(NodeVar)
             return self.variable == n.variable
@@ -332,7 +347,7 @@ module LogicTools
         end
     end
 
-    # A binary node
+    ## A binary node
     class NodeNary < Node 
         extend Forwardable
         include Enumerable
@@ -341,8 +356,9 @@ module LogicTools
 
         protected
         ## Initialize with the operator
-        #  @param op the operator name
-        #  @param sons the sons
+        #  Params:
+        #  +op+::   the operator name
+        #  +sons+:: the sons
         def initialize(op,*sons)
             # Check the sons
             sons.each do |son|
@@ -359,8 +375,9 @@ module LogicTools
 
         public
         ## Create a new nary node
-        #  @param op the operator name
-        #  @param sons the sons
+        #  Params:
+        #  +op+::   the operator name
+        #  +sons+:: the sons
         def NodeNary.make(op,*sons)
             case op
             when :or 
@@ -391,7 +408,7 @@ module LogicTools
             return NodeNary.make(@op,*@sons.sort_by {|son| son.to_sym })
         end
 
-        ##  Create a new node without doublons
+        ##  Create a new node without doublons.
         def uniq(&blk)
             if blk then
                 nsons = @sons.uniq(&blk)
@@ -405,13 +422,13 @@ module LogicTools
             end
         end
 
-        ## Convert to a symbol
+        ## Convert to a symbol.
         def to_sym
             return @sym
         end
 
-        ## Get the variables, recursively, without postprocessing
-        #  @return the variables into sets of arrays with possible doublon
+        ## Get the variables, recursively, without postprocessing.
+        #  Return: the variables into sets of arrays with possible doublon
         def getVariablesRecurse()
             return @sons.reduce([]) do |res,son|
                 res.concat(son.getVariablesRecurse)
@@ -419,7 +436,8 @@ module LogicTools
         end
 
         ## Compare with another node
-        #  @param n the node to compare with
+        #  Params: 
+        #  +n+:: the node to compare with
         def ==(n)
             return false unless n.is_a?(Node)
             return false unless self.op == n.op
@@ -460,7 +478,8 @@ module LogicTools
         #         return NodeNary.make(@op,*nsons)
         #     end
         # end
-        ## Reduce a node: remove its redudancies using absbortion rules
+
+        ## Reduce a node: remove its redudancies using absbortion rules.
         #  NOTE: NEED to CONSIDER X~X and X+~X CASES
         def reduce
             # The operator used for the factors
@@ -498,7 +517,7 @@ module LogicTools
             end
         end
 
-        ## Flatten ands, ors and nots
+        ## Flatten ands, ors and nots.
         #  Default: simply duplicate
         def flatten
             return NodeNary.make(@op,*(@sons.reduce([]) do |nsons,son|
@@ -510,8 +529,8 @@ module LogicTools
             end)).reduce
         end
 
-        ## Flatten hierachical ands, ors and nots, removing redudancies
-        #  @return the new tree
+        ## Flatten hierachical ands, ors and nots, removing redudancies.
+        #  Return: the new tree
         def flatten_deep
             return NodeNary.make(@op,*(@sons.reduce([]) do |nsons,son|
                 son = son.flatten_deep
@@ -523,9 +542,10 @@ module LogicTools
             end)).reduce
         end
 
-        ## Distribute over a given operator
-        #  @param dop the operator to distribute over
-        #  @param node the node to distribute with
+        ## Distribute over a given operator.
+        #  Params: 
+        #  +dop+::  the operator to distribute over
+        #  +node+:: the node to distribute with
         def distribute(dop,node)
             fop = dop == :and ? :or : :and
             # print "dop=#{dop} fop=#{fop} self.op=#{@op}\n"
@@ -556,27 +576,29 @@ module LogicTools
         end
     end
 
-    # A and node
+    ## An AND node
     class NodeAnd < NodeNary
-        ## Initialize by building a new nary node whose operator is and
-        #  @param sons the sons
+        ## Initialize by building a new nary node whose operator is and.
+        #  Params:
+        #  +sons+:: the sons
         def initialize(*sons)
             super(:and,*sons)
         end
 
-        ## Duplicates the node
+        ## Duplicates the node.
         def dup
             return NodeAnd.new(@sons.map(&:dup))
         end
 
-        ## Evaluate the node
+        ## Evaluate the node.
         def eval()
             return !@sons.any? {|son| son.eval() == false }
         end
 
-        ## Convert to a sum of product
-        #  @param flattened tell of the tree is already flatttend
-        #  @return the conversion result
+        ## Convert to a sum of product.
+        #  Params:
+        #  +flattened+:: tell of the tree is already flatttend
+        #  Return: the conversion result
         def to_sum_product(flattened = false)
             # Flatten if required
             node = flattened ? self : self.flatten_deep
@@ -603,7 +625,7 @@ module LogicTools
             end
         end
 
-        ## Converts to a string
+        ## Convert to a string.
         def to_s
             return @str if @str
             @str = ""
@@ -621,7 +643,7 @@ module LogicTools
     end
 
 
-    # A or node
+    ## An OR node
     class NodeOr < NodeNary
         ## Initialize by building a new nary node whose operator is or
         #  @param sons the sons
@@ -661,9 +683,10 @@ module LogicTools
     class NodeUnary < Node
         attr_reader :op, :son
 
-        ## Initialize with the operator
-        #  @param op the operator name
-        #  @param son the son node
+        ## Initialize with the operator.
+        #  Params:
+        #  +op+:: the operator name
+        #  +son+:: the son node
         def initialize(op,son)
             if !son.is_a?(Node) then
                 raise ArgumentError.new("Not a valid object for son.")
@@ -673,7 +696,7 @@ module LogicTools
             @sym = self.to_s.to_sym
         end
 
-        ## Get the size (number of sons)
+        ## Get the size (number of sons).
         def size
             1
         end
@@ -689,50 +712,52 @@ module LogicTools
         #     end
         # end
 
-        ## Get the variables in an array recursively
-        #  @return the variables into an array with possible doublon
+        ## Get the variables in an array recursively.
+        #  Return: the variables into an array with possible doublon
         def getVariablesRecurse()
             return @son.getVariablesRecurse
         end
 
-        ## Iterate on the sons
+        ## Iterate on the sons.
         def each
             yield(@son)
         end
 
-        ## Compare with another node
-        #  @param n the node to compare with
+        ## Compare with another node.
+        #  Params:
+        #  +n+:: the node to compare with
         def ==(n)
             return false unless n.is_a?(Node)
             return false unless self.op == n.op
             return self.son == n.son
         end
 
-        ## Convert to a symbol
+        ## Convert to a symbol.
         def to_sym
             return @sym
         end
     end
 
-    # A not node
+    ## A NOT node
     class NodeNot < NodeUnary
-        ## Initialize by building a new unary node whose operator is not
-        #  @param the son
+        ## Initialize by building a new unary node whose operator is not.
+        #  Params:
+        #  +son+:: the son
         def initialize(son)
             super(:not,son)
         end
 
-        ## Duplicates the node
+        ## Duplicates the node.
         def dup
             return NodeNot.new(@son.dup)
         end
 
-        ## Evaluate the node
+        ## Evaluate the node.
         def eval
             return !son.eval
         end
 
-        ## Flatten ands, ors and nots
+        ## Flatten ands, ors and nots.
         #  Default: simply duplicate
         def flatten
             if nson.op == :not then
@@ -742,8 +767,8 @@ module LogicTools
             end
         end
 
-        ## Flatten hierachical ands, ors and nots
-        #  @return the new tree
+        ## Flatten hierachical ands, ors and nots.
+        #  Return: the new tree
         def flatten_deep
             nson = @son.flatten_deep
             if nson.op == :not then
@@ -753,14 +778,15 @@ module LogicTools
             end
         end
 
-        ## Convert to a sum of product
-        #  @param flattened tell of the tree is already flatttend
-        #  @return the conversion result
+        ## Convert to a sum of product.
+        #  Params:
+        #  +flattened+:: tell of the tree is already flatttend
+        #  Return: the conversion result
         def to_sum_product(flattened = false)
             return NodeNot.new(@son.to_sum_product(flatten))
         end
 
-        ## Converts to a string
+        ## Converts to a string.
         def to_s
             return @str if @str
             # Is the son a binary node?

@@ -6,7 +6,7 @@
 require 'parslet'
 
 # For building logic tress
-require "#{Dir.getwd}/logictree.rb"
+require "logic_tools/logictree.rb"
 
 
 
@@ -32,7 +32,7 @@ module LogicTools
         # Not operator
         rule(:notop) { match('[~!]') }
 
-        # # Grammar rules
+        # Grammar rules
         root(:expr)
         rule(:expr) { orexpr }
         rule(:orexpr) { (andexpr >> ( orop >> andexpr ).repeat).as(:orexpr) }
@@ -78,6 +78,9 @@ module LogicTools
 
 
     ## The parser/gerator main fuction: converts a string to a logic tree
+    #  Param:
+    #  +str+:: the string to parse
+    #  Return: the resulting logic tree
     def string2logic(str)
         # Remove the spaces
         str = str.gsub(/\s+/, "")
