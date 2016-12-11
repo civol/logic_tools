@@ -331,6 +331,7 @@ module LogicTools
                     NodeVar.new(vars[0])
                 end
             end
+            # print "sums = #{sums.to_s}\n"
             # Then the product
             # expr = NodeAnd.new(*sums).uniq
             if sums.size > 1 then

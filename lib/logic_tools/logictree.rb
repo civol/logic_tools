@@ -611,7 +611,12 @@ module LogicTools
                 dist = []
                 nsons.each_slice(2) do |left,right|
                     # print "left=#{left}, right=#{right}\n"
-                    dist << (right ? left.distribute(:and,right) : left)
+                    if right then
+                        dist << (left.op == :or ? left.distribute(:and,right) :
+                                                  right.distribute(:and,left))
+                    else
+                        dist << left
+                    end
                 end
                 # print "dist=#{dist}\n"
                 nsons = dist
