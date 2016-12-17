@@ -1,6 +1,17 @@
-*     ~a~b~c~d+~a~bc+~ac~d+b~cd+a~b~c~d+a~bd
-got:  ~ac~d+~b~c~d+~bcd+b~cd
-good: ~ac~d+a~bd+~b~c~d+~bcd+b~cd
-FIXED!
+= Known bugs
+---
+=== Bug 1
+    $ simplify_qm "~a~b~c~d+~a~bc+~ac~d+b~cd+a~b~c~d+a~bd"
+    
+    -> got:       ~ac~d+~b~c~d+~bcd+b~cd
+       expecting: ~ac~d+a~bd+~b~c~d+~bcd+b~cd
+    
+*FIXED*
 
-
+---
+=== Bug 2
+    $ simplify_qm "~~~a"
+    
+    -> Crashes
+    
+*FIXED*

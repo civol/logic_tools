@@ -13,6 +13,12 @@ require "logic_tools/logicparse.rb"
 # For simplifying
 require "logic_tools/logicsimplify.rb"
 
+# For the command line interface
+require "logic_tools/logicinput.rb"
+
+# For the command line interface
+require "logic_tools/logicinput.rb"
+
 include LogicTools
 
 
@@ -22,25 +28,29 @@ include LogicTools
 ############################
 # The main program
 
-# First gets the expression to treat
-$expr = nil
-# Is it in the arguments?
-unless $*.empty? then
-    # Yes, get the expression from them
-    $expr = $*.join
-else
-    # Get the expression from standard input
-    print "Please enter your expression and end with ^D:\n"
-    $expr = ARGF.read
+## Now use the common command line interface
+# # First gets the expression to treat
+# $expr = nil
+# # Is it in the arguments?
+# unless $*.empty? then
+#     # Yes, get the expression from them
+#     $expr = $*.join
+# else
+#     # Get the expression from standard input
+#     print "Please enter your expression and end with ^D:\n"
+#     $expr = ARGF.read
+# end
+# 
+
+# Iterrate on each expression
+each_input do |expr|
+    # Parse the expression
+    parsed = string2logic(expr)
+
+    # Simplify it
+    simple = parsed.simplify
+    # print "Computation done\n"
+ 
+    # Display the result
+    print simple.to_s, "\n"
 end
-
-# Parse the expression
-$parsed = string2logic($expr)
-
-# Simplify it
-$simple = $parsed.simplify
-
-# print "Computation done\n"
-
-# Display the result
-print $simple.to_s, "\n"

@@ -1,18 +1,21 @@
-#########################################################################
-#           Common command line interface for all Logic Tools           #
-#########################################################################
-
 
 module LogicTools
-    ## Displays the short help
+
+
+#########################################################################
+#           Common command line interface for all Logic Tools           
+#########################################################################
+
+
+    ## Displays a short help message.
     def help_short
         name = File.basename($0)
         puts "Usage: #{name} <\"logic expression\">"
         puts "   or: #{name} -f <file name>"
     end
 
-    ## Get an iterator over the input expression
-    #  (either through options or a file).
+    ## Gets an iterator over the input expression
+    #  (obtained either through options or a through file).
     def each_input
         # No block? Return an enumerator
         return enum_for(:each_input) unless block_given?

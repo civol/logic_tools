@@ -10,8 +10,8 @@ require 'set'
 module LogicTools
 
 
-    ## Converts an array of variable to bit vector according to their value
-    #  @param vars the array of variables to convert
+    ## Converts the array of variables +var+ to a bit vector according to
+    #  their values
     def vars2int(vars)
         res = ""
         vars.each_with_index do |var,i|
@@ -24,24 +24,33 @@ module LogicTools
 
 
 
-    # Class describing an implicant
+    ##
+    # Represents a logic implicant
     class Implicant
         include Enumerable
-        attr_reader :mask,   # The positions of the x 
-                    :bits,   # The bit vector of the implicant
-                    :count,  # The number of 1 of the implicant
-                    :covers, # The bit values covered by the implicant
-                    :prime   # Tell if the implicant is prime or not
-        attr_accessor :var   # The variable associated with the implicant
-                             # Do not interfer at all with the class, so
-                             # public and fully accessible
+
+        ## The positions of the *X* in the implicant.
+        attr_reader :mask
+        ## The bit vector of the implicant.
+        attr_reader :bits
+        ## The number of *1* of the implicant.
+        attr_reader :count
+        ## The bit values covered by the implicant.
+        attr_reader :covers
+        ## Tell if the implicant is prime or not.
+        attr_reader :prime   
+        ## The variable associated with the implicant
+        #  Do not interfer at all with the class, so
+        #  public and fully accessible
+        attr_accessor :var    
+        
         protected
         attr_writer :covers
         public
 
-        ## Create an implicant
-        #  @param base if Implicant: copy constructor <br>
-        #              otherwise: creat a new implicant from a bit string
+        ## Creates a new implicant from +base+.
+        #
+        #  Argument +base+ can be either another implicant or a bit string.
         def initialize(base)
             if base.is_a?(Implicant)
                 @covers = base.covers.dup
@@ -51,7 +60,7 @@ module LogicTools
             else
                 @bits = base.to_s
                 unless @bits.match(/^[01]*$/)
-                    raise "Invalid bit string for an initial implicant: " + @bits
+                    raise "Invalid bit string for an initial implicant: "+ @bits
                 end
                 @mask = " " * @bits.size
                 @count = @bits.count("1")
@@ -60,50 +69,44 @@ module LogicTools
             @prime = true # By default assumed prime
         end
 
-        ## Convert to a string
-        def to_s
+        ## Converts to a string
+        def to_s # :nodoc:
             @bits
         end
 
-        ## inspect
-        def inspect
+        def inspect #:nodoc:
             @bits.dup
         end
 
-        ## Set the prime status
-        #  @param st the new status (true or false)
+        ## Sets the prime status to +st+ (true or false).
         def prime=(st)
             @prime = st ? true : false
         end
 
-        ## Iterate overs the bits of the implicant
+        ## Iterates over the bits of the implicant.
         def each(&blk)
             @bits.each_char(&blk)
         end
 
-        # Compare implicants
-        # @param imp the implicant (or simply bit string) to compare with
-        def ==(imp)
-            @bits == imp.to_s
+        ## Compares with +implicant+
+        def ==(implicant) # :nodoc:
+            @bits == implicant.to_s
         end
-        def <=>(imp)
-            @bits <=> imp.to_s
+        def <=>(implicant) #:nodoc:
+            @bits <=> implicant.to_s
         end
 
-        # duplicates the implicant
-        def dup
+        ## duplicates the implicant.
+        def dup # :nodoc:
             Implicant.new(self)
         end
 
-        ## Get a bit by index
-        #  @param i the index in the bit string of the implicant
+        ## Gets the value of bit +i+.
         def [](i)
             @bits[i]
         end
 
-        ## Set a bit by index
-        #  @param i the index in the bit string of the implicant
-        #  @param b the bit to set
+        ## Sets the value of bit +i+ to +b+.
         def []=(i,b)
             raise "Invalid bit value: #{b}" unless ["0","1","x"].include?(b)
             return if @bits[i] == b # Already set
@@ -117,16 +120,14 @@ module LogicTools
         end
 
 
-        ## Merge with another implicant
-        #  @param imp the implicant to merge with
-        #  @return the resulting implicant
-        def merge(imp)
-            # Has imp the same mask?
-            return nil unless imp.mask == @mask
+        ## Creates a new implicant merging current implicant with +imp+.
+        def merge(implicant)
+            # Has implicant the same mask?
+            return nil unless implicant.mask == @mask
             # First look for a 1-0 or 0-1 difference
             found = nil
             @bits.each_char.with_index do |b0,i|
-                b1 = imp.bits[i]
+                b1 = implicant.bits[i]
                 # Bits are different
                 if (b0 != b1) then
                     # Stop if there where already a difference
@@ -146,7 +147,7 @@ module LogicTools
                 # And update its x
                 merged[found] = "x"
                 # Finally update its covers
-                merged.covers = @covers | imp.covers
+                merged.covers = @covers | implicant.covers
                 return merged
             end
             # No merge
@@ -154,67 +155,72 @@ module LogicTools
         end
     end
 
-    # Class describing a group of implicants with only singletons, sortable
-    # by number of ones
+
+    ##
+    # Represents a group of implicants with only singletons, sortable
+    # by number of ones.
     class SameXImplicants
         include Enumerable
 
-        ## Default constructor
+        ## Creates a group of implicants.
         def initialize
             @implicants = []
             @singletons =  Set.new # Set used for ensuring each implicant is
                                    # present only once in the group
         end
 
-        ## Ge the size of the group
+        ## Gets the number of implicants of the group.
         def size
             @implicants.size
         end
 
-        ## Iterate of the implicants
+        ## Iterates over the implicants of the group.
         def each(&blk)
             @implicants.each(&blk)
         end
 
-        ## Access by index
-        #  @param i the index
+        ## Gets implicant +i+.
         def [](i)
             @implicants[i]
         end
 
-        ## Add an implicant
-        #  @param imp the implicant to add
-        def add(imp)
-            return if @singletons.include?(imp.bits) # Implicant already present
-            @implicants << imp
-            @singletons.add(imp.bits.dup)
+        ## Adds +implicant+ to the group.
+        def add(implicant)
+            # Nothing to do if +implicant+ is already present.
+            return if @singletons.include?(implicant.bits)
+            @implicants << implicant
+            @singletons.add(implicant.bits.dup)
         end
+
         alias :<< :add
 
-        # Sort the implicants by number of ones
+        ## Sort the implicants by number of ones.
         def sort!
-            @implicants.sort_by! {|imp| imp.count }
+            @implicants.sort_by! {|implicant| implicant.count }
         end
 
-        # Convert to a string
-        def to_s
+        ## Converts to a string
+        def to_s # :nodoc:
             @implicants.to_s
         end
-        def inspect
+
+        def inspect # :nodoc:
             to_s
         end
     end
 
-    ## Class describing a pseudo variable associated to an implicant
+    ## 
+    #  Describes a pseudo variable associated to an implicant.
+    #
     #  Used for the Petrick's method
     class VarImp < Variable
         @@base = 0 # The index of the VarImp for building the variable names
 
+        ## The implicant the pseudo variable is associated to.
         attr_reader :implicant
 
-        ## Create the variable
-        #  @param imp the implicant to create the variable from
-        def initialize(imp)
+        ## Creates a pseudo variable assoctiated to an +implicant+.
+        def initialize(implicant)
             # Create the name of the variable
             name = nil
             begin
@@ -224,19 +230,20 @@ module LogicTools
             # Create the variable
             super(name)
             # Associate it with the implicant
-            @implicant = imp
-            imp.var = self
+            @implicant = implicant
+            implicant.var = self
         end
     end
 
 
 
-    # Enhance the Node class with expression simplifying
+    ## Enhances the Node class with expression simplifying.
     class Node
         
         ## Generates an equivalent but simplified representation of the
-        #  function.<br>
-        #  Uses the Quine-Mc Cluskey method
+        #  expression represented by the tree rooted by the current node.
+        #
+        #  Uses the Quine-Mc Cluskey method.
         def simplify
             # Step 1: get the generators
             
@@ -254,8 +261,8 @@ module LogicTools
 
             # Convert the minterms to implicants without x
             minterms.each do |term|
-                imp = Implicant.new(term)
-                implicants[imp.mask] << imp
+                implicant = Implicant.new(term)
+                implicants[implicant.mask] << implicant
             end
 
             # print "implicants = #{implicants}\n"
@@ -272,17 +279,18 @@ module LogicTools
                     group.sort! # Sort by number of one
                     size = group.size
                     # print "size = #{size}\n"
-                    group.each_with_index do |imp0,i0|
-                        # print "imp0 = #{imp0}, i0=#{i0}\n"
+                    group.each_with_index do |implicant0,i0|
+                        # print "implicant0 = #{implicant0}, i0=#{i0}\n"
                         ((i0+1)..(size-1)).each do |i1|
                             # Get the next implicant
-                            imp1 = group[i1]
-                            # print "imp1 = #{imp1}, i1=#{i1}\n"
-                            # No need to look further if the number of 1 of imp1
-                            # is more than one larger than imp0's
-                            break if imp1.count > imp0.count+1
+                            implicant1 = group[i1]
+                            # print "implicant1 = #{implicant1}, i1=#{i1}\n"
+                            # No need to look further if the number of 1 of 
+                            # implicant1 is more than one larger than 
+                            # implicant0's
+                            break if implicant1.count > implicant0.count+1
                             # Try to merge
-                            mrg = imp0.merge(imp1)
+                            mrg = implicant0.merge(implicant1)
                             # print "mrg = #{mrg}\n"
                             # Can merge
                             if mrg then
@@ -290,14 +298,14 @@ module LogicTools
                                 # Indicate than a merged happend
                                 has_merged = true
                                 # Mark the initial generators as not prime
-                                imp0.prime = imp1.prime = false
+                                implicant0.prime = implicant1.prime = false
                             end
                         end 
                         # Is the term prime?
-                        if imp0.prime then
-                            # print "imp0 is prime\n"
+                        if implicant0.prime then
+                            # print "implicant0 is prime\n"
                             # Yes add it to the generators
-                            generators << imp0
+                            generators << implicant0
                         end
                     end
                 end
@@ -359,7 +367,7 @@ module LogicTools
             end
 
             # Sort by variable order
-            selected.sort_by! { |imp| imp.bits }
+            selected.sort_by! { |implicant| implicant.bits }
 
             # print "Selected prime implicants are: #{selected}\n"
             # Generate the resulting tree

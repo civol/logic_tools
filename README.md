@@ -2,14 +2,12 @@
 
 LogicTools is a set of command-line tools for processing logic expressions.
 The tools include:
- * simplify\_qm:  for simplifying a logic expression.
- * std\_conj:  for computing the conjunctive normal form of a logic expression.
- * std\_dij:   for computing the disjunctive normal form a of logic expression.
- * truth\_tbl: for generating the truth table of a logic expression.
 
-## Disclaimer
+ * __simplify\_qm__:  for simplifying a logic expression.
+ * __std\_conj__:  for computing the conjunctive normal form of a logic expression.
+ * __std\_dij__:   for computing the disjunctive normal form a of logic expression.
+ * __truth\_tbl__: for generating the truth table of a logic expression.
 
-There is still a nasty bug in the logic simplifying tool (simplify_qm) which makes it give a wrong result. Fortunately, it seems to happen in some rare cases only.
 
 ## Installation
 
@@ -29,10 +27,16 @@ Or install it yourself as:
 
 ## Usage
 
-LogicTools is a command line-based set of tool. Each tool is used as follows:
-tool\_name "logical expression"
+LogicTools is a command line-based set of tool. Each tool is used as follows for processing a single expression:
+
+    $ tool_name "single logical expression"
+
+Multiple expressions stored into a file can also be processed as follows:
+
+    $ tool_name -f <filename>
 
 The logical expression is an expression where:
+
 * a logical variable is represented by a single alphabetical character (hence there is in total 56 possible variables);
 * a logical OR is represented by a '+' character;
 * a logical AND is represented by a '.' character (but it can be omitted);
@@ -40,32 +44,41 @@ The logical expression is an expression where:
 * opening and closing parenthesis are represented by, respectively, '(' and ')' characters.
 
 Important notice: 
+
 * the priority among logical operators is as follows: NOT > AND > OR
 * logical expressions must be put between quotes (the '"' character).
 
 For instance the followings are valid logical expression using the a,b and c variables:
-"ab+ac"
-"a.b.c"
-"a+b+!c"
-"a~(b+~c)"
+
+    "ab+ac"
+    "a.b.c"
+    "a+b+!c"
+    "a~(b+~c)"
 
 Finally, here are a few examples of LogicTool usage:
+
 * simplifying the expression a+ab:
-simplify\_qm "a+ab"
--> a
+
+        $ simplify_qm "a+ab"
+        -> a
 * compute the conjunctive normal form of the expression a+ab:
-std\_conj "a+ab"
--> ab+a~b
+
+        $ std_conj "a+ab"
+        -> ab+a~b
+
 * compute the disjunctive normal form of the expression a+ab:
-std\_dij "a+ab"
--> (a+b)(a+~b)
+
+        $ std_dij "a+ab"
+        -> (a+b)(a+~b)
+
 * compute the truth table of the expression a+ab:
-truth\_tbl "a+ab"
--> a b
-   0 0 0
-   0 1 0
-   1 0 1
-   1 1 1
+
+        $ truth_tbl "a+ab"
+        -> a b
+           0 0 0
+           0 1 0
+           1 0 1
+           1 1 1
 
 ## Development
 
@@ -84,12 +97,6 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 
 ## To do
-### High priority
-* Fix the bug that makes simplify\_qm produce sometimes a wrong result. 
-* Downgrade the user interface: actually the interface can do much more than what is described in the documentation, but this is not really useful, so it should better to remove these features.
-
-### Low priority
-
 * Add a more efficient alternative command to simplify_qm, based on the Espresso algorithm for example.
 
 

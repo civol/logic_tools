@@ -1,6 +1,6 @@
-##########################
-# Truth table generator  #
-##########################
+########################################################
+#     Parse a string and convert to a logic tree       #
+########################################################
 
 # For parsing the inputs
 require 'parslet'
@@ -11,24 +11,25 @@ require "logic_tools/logictree.rb"
 
 
 
-########################################################
-# Parse a string and convert to a logic tree
 
 
 module LogicTools
 
-    ## The parser of logic expressions
+    ## The parser of logic expressions.
     class Parser < Parslet::Parser
 
         # True / false
         rule(:tru) { str("1") }
         rule(:fal) { str("0") }
         # Variable
-        rule(:var) { match('[A-Za-uw-z]') }
+        # rule(:var) { match('[A-Za-uw-z]') }
+        rule(:var) { match('[A-Za-z]') }
         # And operator
-        rule(:andop) { str("&&") | match('[&\.\*^]') }
+        # rule(:andop) { str("&&") | match('[&\.\*^]') }
+        rule(:andop) { str(".") }
         # Or operator
-        rule(:orop) { match('[+|v]') }
+        # rule(:orop) { match('[+|v]') }
+        rule(:orop) { str("+") }
         # Not operator
         rule(:notop) { match('[~!]') }
 
@@ -43,7 +44,7 @@ module LogicTools
     end
 
 
-    ## The logic tree generator from the syntax tree
+    ## The logic tree generator from the syntax tree.
     class Transform < Parslet::Transform
 
         # Terminal rules
@@ -77,10 +78,8 @@ module LogicTools
     end
 
 
-    ## The parser/gerator main fuction: converts a string to a logic tree
-    #  Param:
-    #  +str+:: the string to parse
-    #  Return: the resulting logic tree
+    ## The parser/gerator main fuction: converts the text in +str+ to a 
+    #  logic tree.
     def string2logic(str)
         # Remove the spaces
         str = str.gsub(/\s+/, "")

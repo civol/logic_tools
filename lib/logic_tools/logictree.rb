@@ -6,19 +6,19 @@ require 'forwardable'
 
 module LogicTools
 
-    ## A logical variable
+    ## 
+    # Represents a logical variable.
     class Variable
 
         include Comparable
 
-        ## The pool of variables
+        # The pool of variables
         @@variables = {}
 
+        ## The current value of the variable (boolean).
         attr_reader :value
 
-        ## Initialize with a name (the value is set to false)
-        #  Params:
-        #  +name+:: the name of the variable
+        ## Creates a new variable with +name+ (the value is set to false).
         def initialize(name)
             if @@variables.key?(name.to_s)
                 raise "Variable already present."
@@ -30,9 +30,7 @@ module LogicTools
             @@variables[name.to_s] = self
         end
 
-        ## Set the value
-        #  Params:
-        #  +value+:: the value to set
+        #  Sets the variable to +value+ (boolean).
         def value=(value)
             if (value.respond_to?(:to_i))
                 @value = value.to_i == 0 ? false : true
@@ -41,16 +39,13 @@ module LogicTools
             end
         end
 
-        ## Checks if a variables exists
-        #  Params:
-        #  +name+:: the name of the variable to check
+        ## Checks if variable +name+ exists.
         def Variable.exists?(name)
             return @@variables.has_key?(name.to_s)
         end
 
-        ## Get a variable by name, if not existing creates it.
-        #  Params:
-        #  +name+:: the name of the variable to get
+        ## Gets a variable by +name+. 
+        #  If there is no such variable yet, creates it.
         def Variable.get(name)
             var = @@variables[name.to_s]
             # print "Got var=#{var.to_s} with value=#{var.value}\n" if var
@@ -58,49 +53,55 @@ module LogicTools
             return var
         end
 
-        ## Convert to a string
+        ## Converts to a string: actually returns a duplicate of the name
+        #  of the variable.
         def to_s
             @name.dup
         end
 
-        ## For print
-        def inspect
+        def inspect # :nodoc:
             to_s
         end
 
-        ## For comparison
+        ## Compares with another object using the name of the variable.
         def <=>(b)
             self.to_s <=> b.to_s
         end
     end
 
-    ## A logical tree node
+    ## 
+    # Represents a node of a tree representing a logical expression.
     class Node
         include Enumerable
 
-        ## Get the variables of the tree
-        #  Return: the variables into an array, sorted by name
+        ## Gets a array containing the variables of the tree sorted by name.
         def getVariables()
             result = self.getVariablesRecurse
             return result.flatten.uniq.sort
         end
 
-        ## Get the operator if any
+        ## Gets the operator.
+        #
+        #  Default: +nil+ (none).
         def op
             nil
         end
 
-        ## Get the size (number of sons)
-        #  Default: 0
+        ## Gets number of children.
+        #
+        #  Default: +0+ (none).
         def size
             0
         end
 
-        ## Iterate on each truth table line.
-        #  TODO: generate an Enumerator.
-        #  Iteration parameters:
-        #  vars: the variables of the expression
-        #  val:  the value
+        ## Iterates on each line of the truth table obtained from the tree
+        #  rooted by current node.
+        #
+        #  Iteration parameters (for the current line of the truth table):
+        #  * +vars+: the variables of the expression 
+        #  * +val+:  the value of the expression
+        #  --
+        #  TODO generate an Enumerator.
         def each_line
             # Get the variables
             vars = self.getVariables
@@ -118,18 +119,22 @@ module LogicTools
             end
         end
 
-        ## Iterate over each minterm.
-        #  TODO: generate an Enumerator.
+        ## Iterates over each minterm of the tree rooted from current node.
+        #
         #  Iteration parameters:
-        #  vars: the variables of the expression
+        #  * +vars+: the variables of the expression
+        #  --
+        #  TODO generate an Enumerator.
         def each_minterm
             each_line { |vars,val| yield(vars) if val }
         end
 
-        ## Iterate over each maxterm.
-        #  TODO: generate an Enumerator.
+        ## Iterates over each maxterm of the tree rooted from current node.
+        #
         #  Iteration parameters:
-        #  vars: the variables of the expression
+        #  * +vars+: the variables of the expression
+        #  --
+        #  TODO generate an Enumerator.
         def each_maxterm
             each_line do |vars,val|
                 unless val then
@@ -139,12 +144,14 @@ module LogicTools
             end
         end
 
-        ## Iterate on the sons (if any, by default: none)
-        #  TODO: generate an Enumerator.
+        ## Iterate over the children.
+        #
+        #  --
+        #  TODO generate an Enumerator.
         def each
         end
 
-        ## Generates the equivalent standard conjunctive form 
+        ## Generates the equivalent standard conjunctive form.
         def to_std_conjunctive
             # Generate each minterm tree
             minterms = []
@@ -163,8 +170,8 @@ module LogicTools
             return minterms.size == 1 ? minterms[0] : NodeOr.new(*minterms)
         end
 
-        ## Generates the equivalent standard disjonctive form
-        def to_std_disjonctive
+        ## Generates the equivalent standard disjunctive form.
+        def to_std_disjunctive
             # Generate each maxterm tree
             maxterms = []
             each_maxterm do |vars|
@@ -182,24 +189,24 @@ module LogicTools
             return maxterms.size == 1 ? maxterms[0] : NodeAnd.new(*maxterms)
         end
 
-        ## Flatten ands, ors and nots
-        #  Default: simply duplicate
+        ## Creates a new tree where the *and*, *or* or *not* operator of
+        #  the current node is flattened.
+        #
+        #  Default: simply duplicates the node.
         def flatten
             return self.dup
         end
 
-        ## Flatten hierachical ands, ors and nots.
+        ## Creates a new tree where all the *and*, *or* and *not* operators 
+        #  from the current node are flattened.
+        #
         #  Default: simply duplicate.
-        #  Return: the new tree
         def flatten_deep
             return self.dup
         end
 
-        ## Distribute over a given operator.
-        #  Default distribution: self is unary.
-        #  Params:
-        #  +dop+:: the operator to distribute over
-        #  +node+:: the node to distribute with
+        ## Creates a new tree where the current node is distributed over +node+
+        #  according to the +dop+ operator.
         def distribute(dop,node)
             fop = dop == :and ? :or : :and
             # print "dop=#{dop}, fop=#{fop}, node.op=#{node.op}\n"
@@ -208,146 +215,149 @@ module LogicTools
                 return NodeNary.make(dop, self, *node)
             elsif (node.op == fop) then
                 # Opposite operator: can distribute
-                nsons = node.map do |son|
-                    NodeNary.make(dop,son,self).flatten
+                nchildren = node.map do |child|
+                    NodeNary.make(dop,child,self).flatten
                 end
-                return NodeNary.make(fop,*nsons).flatten
+                return NodeNary.make(fop,*nchildren).flatten
             else
                 # Unary operator: simple product
                 return NodeNary.make(dop, self, node)
             end
         end
 
-        ## Convert to a sum of product
-        #  Params:
-        #  +flattened+:: tell if the tree is already flattend
-        #  Return: the conversion result
+        ## Creates a sum fo product from the tree rooted by current node.
+        #
+        #  Argument +flattened+ tells if the tree is already flattend
         def to_sum_product(flattened = false)
             return self.dup
         end
 
-        ## For print
-        def inspect
+        def inspect # :nodoc:
             to_s
         end
 
-        ## Convert to a symbol:
-        #  Default: to_s.to_sym
+        ## Converts to a symbol.
+        #
+        #  There is exactly one symbol per possible tree.
         def to_sym
             to_s.to_sym
         end
 
-        ## For hash
-        def hash
+        def hash # :nodoc:
             to_sym.hash
         end
-        def eql?(val)
+        def eql?(val) # :nodoc:
             self == val
         end
     end
 
-    ## A Value node
+    
+    ## 
+    # Represents a value node.
     class NodeValue < Node
 
         protected
-        ## Build with a value.
-        #  Params:
-        #  +value+:: the value
-        def initialize(value)
+
+        ## Creates a node by +value+.
+        def initialize(value) # :nodoc:
             @value = value
             @sym = @value.to_s.to_sym
         end
+
         public
 
-        ## Get the variables, recursively, without postprocessing.
-        #  Return: the variables into sets of arrays with possible doublon
-        def getVariablesRecurse()
+        ## Gets the variables, recursively, without postprocessing.
+        #
+        #  Returns the variables into sets of arrays with possible doublon
+        def getVariablesRecurse() # :nodoc:
             return [ ]
         end
 
-        ## Compare with another node.
-        #  Params:
-        #  +n+:: the node to compare with
-        def ==(n)
-            return false unless n.is_a?(NodeValue)
-            return self.eval() == n.eval()
+        ## Compares with +node+.
+        def ==(node) # :nodoc:
+            return false unless node.is_a?(NodeValue)
+            return self.eval() == node.eval()
         end
 
-        ## Evaluate.
+        ## Computes the value of the node.
         def eval
             return @value
         end
 
-        ## Convert to a symbol.
-        def to_sym
+        ## Converts to a symbol.
+        def to_sym # :nodoc:
             return @sym
         end
 
         ## Converts to a string.
-        def to_s
+        def to_s # :nodoc:
             return @value.to_s
         end
     end
 
-    ## A true node
+    ## 
+    # Represents a true node.
     class NodeTrue < NodeValue
-        ## Intialize as a NodeValue whose value is true.
+        ## Creates as a NodeValue whose value is true.
         def initialize
             super(true)
         end
     end
 
-    ## A false node
+    ## 
+    # Represents a false node
     class NodeFalse < NodeValue
-        ## Intialize as a NodeValue whose value is false.
+        ## Creates as a NodeValue whose value is false.
         def initialize
             super(false)
         end
     end
 
-    ## A variable node
+
+    ## 
+    # Represents a variable node.
     class NodeVar < Node
+
+        ## The variable held by the node.
         attr_reader :variable
 
-        ## Initialize with the variable name.
-        #  Params:
-        #  +name+:: the name of the variable
+        ## Creates a node with variable +name+.
         def initialize(name)
             @variable = Variable.get(name)
             @sym = @variable.to_s.to_sym
         end
 
-        ## Evaluates the node
+        ## Computes the value of the node.
         def eval()
             return @variable.value
         end
 
-        ## Convert to a symbol
-        def to_sym
+        ## Converts to a symbol.
+        def to_sym # :nodoc:
             return @sym
         end
 
-        ## Get the variables, recursively, without postprocessing
-        #  Return: the variables into sets of arrays with possible doublon
-        def getVariablesRecurse()
+        ## Gets the variables, recursively, without postprocessing.
+        #
+        #  Returns the variables into sets of arrays with possible doublon
+        def getVariablesRecurse() # :nodoc:
             return [ @variable ]
         end
 
-        ## Compare with another node
-        #  Params:
-        #  +n+:: the node to compare with
-        def ==(n)
-            return false unless n.is_a?(NodeVar)
-            return self.variable == n.variable
+        ## Compares with +node+.
+        def ==(node) # :nodoc:
+            return false unless node.is_a?(NodeVar)
+            return self.variable == node.variable
         end
 
-        ## Converts to a string
-        def to_s
+        ## Converts to a string.
+        def to_s # :nodoc:
             return variable.to_s
         end
     end
 
-    ## A binary node
+    ## 
+    # Represents an operator node with multiple children.
     class NodeNary < Node 
         extend Forwardable
         include Enumerable
@@ -355,35 +365,29 @@ module LogicTools
         attr_reader :op
 
         protected
-        ## Initialize with the operator
-        #  Params:
-        #  +op+::   the operator name
-        #  +sons+:: the sons
-        def initialize(op,*sons)
-            # Check the sons
-            sons.each do |son|
-                unless son.is_a?(Node) then
-                    raise ArgumentError.new("Not a valid class for a son: "+
-                                            "#{son.class}")
+        ## Creates a node with operator +op+ and +children+.
+        def initialize(op,*children) # :nodoc:
+            # Check the children
+            children.each do |child|
+                unless child.is_a?(Node) then
+                    raise ArgumentError.new("Not a valid class for a child: "+
+                                            "#{child.class}")
                 end
             end
-            # Sons are ok
+            # Children are ok
             @op = op.to_sym
-            @sons = sons
+            @children = children
             @sym = self.to_s.to_sym
         end
 
         public
-        ## Create a new nary node
-        #  Params:
-        #  +op+::   the operator name
-        #  +sons+:: the sons
-        def NodeNary.make(op,*sons)
+        ## Creates a node with operator +op+ and +children+ (factory method).
+        def NodeNary.make(op,*children)
             case op
             when :or 
-                return NodeOr.new(*sons)
+                return NodeOr.new(*children)
             when :and
-                return NodeAnd.new(*sons)
+                return NodeAnd.new(*children)
             else 
                 raise ArgumentError.new("Not a valid operator: #{op}")
             end
@@ -391,60 +395,55 @@ module LogicTools
 
 
         # Also acts as an array of nodes
-        def_delegators :@sons, :[], :empty?, :size
-        def each(&blk)
-            @sons.each(&blk)
+        def_delegators :@children, :[], :empty?, :size
+
+        ## Iterates over the children.
+        def each(&blk) # :nodoc:
+            @children.each(&blk)
             return self
         end
-        # def sort_by!(&blk)
-        #     @sons.sort_by!(&blk)
-        #     return self
-        # end
-        # def sort!
-        #     @sons.sort_by! {|son| son.sym }
-        #     return self
-        # end
+
+        ## Creates a new node whose childrens are sorted.
         def sort
-            return NodeNary.make(@op,*@sons.sort_by {|son| son.to_sym })
+            return NodeNary.make(@op,*@children.sort_by {|child| child.to_sym })
         end
 
-        ##  Create a new node without doublons.
+        ## Creates a new node without duplicate in the children.
         def uniq(&blk)
             if blk then
-                nsons = @sons.uniq(&blk)
+                nchildren = @children.uniq(&blk)
             else
-                nsons = @sons.uniq { |son| son.to_sym }
+                nchildren = @children.uniq { |child| child.to_sym }
             end
-            if nsons.size == 1 then
-                return nsons[0]
+            if nchildren.size == 1 then
+                return nchildren[0]
             else
-                return NodeNary.make(@op,*nsons)
+                return NodeNary.make(@op,*nchildren)
             end
         end
 
-        ## Convert to a symbol.
-        def to_sym
+        ## Converts to a symbol.
+        def to_sym # :nodoc:
             return @sym
         end
 
-        ## Get the variables, recursively, without postprocessing.
-        #  Return: the variables into sets of arrays with possible doublon
-        def getVariablesRecurse()
-            return @sons.reduce([]) do |res,son|
-                res.concat(son.getVariablesRecurse)
+        ## Gets the variables, recursively, without postprocessing.
+        #
+        #  Returns the variables into sets of arrays with possible doublon
+        def getVariablesRecurse() # :nodoc:
+            return @children.reduce([]) do |res,child|
+                res.concat(child.getVariablesRecurse)
             end
         end
 
-        ## Compare with another node
-        #  Params: 
-        #  +n+:: the node to compare with
-        def ==(n)
-            return false unless n.is_a?(Node)
-            return false unless self.op == n.op
+        ## Compares with +node+.
+        def ==(node) # :nodoc:
+            return false unless node.is_a?(Node)
+            return false unless self.op == node.op
             # There is no find_with_index!
-            # return ! @sons.find_with_index {|son,i| son != n[i] }
-            @sons.each_with_index do |son,i|
-                return false if son != n[i]
+            # return ! @children.find_with_index {|child,i| child != node[i] }
+            @children.each_with_index do |child,i|
+                return false if child != node[i]
             end
             return true
         end
@@ -457,7 +456,7 @@ module LogicTools
         #     fop = @op == :and ? :or : :and
         #     # Gather the terms by factor
         #     terms = Hash.new {|h,k| h[k] = [] }
-        #     @sons.each do |term|
+        #     @children.each do |term|
         #         if (term.op == fop) then
         #             # There are factors
         #             term.each { |fact| terms[fact] << term }
@@ -468,32 +467,34 @@ module LogicTools
         #     end
         #     # Keep only the shortest term per factor
         #     terms.each_key {|k| terms[k] = terms[k].min_by {|term| term.size} }
-        #     nsons = terms.values
+        #     nchildren = terms.values
         #     # Avoid doublons
-        #     nsons.uniq!
+        #     nchildren.uniq!
         #     # Generate the result
-        #     if (nsons.size == 1)
-        #         return nsons[0]
+        #     if (nchildren.size == 1)
+        #         return nchildren[0]
         #     else
-        #         return NodeNary.make(@op,*nsons)
+        #         return NodeNary.make(@op,*nchildren)
         #     end
         # end
 
-        ## Reduce a node: remove its redudancies using absbortion rules.
-        #  NOTE: NEED to CONSIDER X~X and X+~X CASES
+        ## Reduces a node: remove its redundancies using the absbortion rules.
+        #
+        #  --
+        #  TODO consider the X~X and X+~X cases.
         def reduce
             # The operator used for the factors
             fop = @op == :and ? :or : :and
             # Gather the terms converted to a sorted string for fast
             # comparison
-            terms = @sons.map do |son|
-                if (son.op == fop) then
-                    [ son, son.sort.to_s ]
+            terms = @children.map do |child|
+                if (child.op == fop) then
+                    [ child, child.sort.to_s ]
                 else
-                    [ son, son.to_s ]
+                    [ child, child.to_s ]
                 end
             end
-            nsons = []
+            nchildren = []
             # Keep only the terms that do not contain another one
             terms.each_with_index do |term0,i|
                 skipped = false
@@ -505,48 +506,47 @@ module LogicTools
                         break
                     end
                 end
-                nsons << term0[0] unless skipped # Term has not been skipped
+                nchildren << term0[0] unless skipped # Term has not been skipped
             end
-            # Avoid doublons
-            nsons.uniq!
+            # Avoid duplicates
+            nchildren.uniq!
             # Generate the result
-            if (nsons.size == 1)
-                return nsons[0]
+            if (nchildren.size == 1)
+                return nchildren[0]
             else
-                return NodeNary.make(@op,*nsons)
+                return NodeNary.make(@op,*nchildren)
             end
         end
 
         ## Flatten ands, ors and nots.
-        #  Default: simply duplicate
-        def flatten
-            return NodeNary.make(@op,*(@sons.reduce([]) do |nsons,son|
-                if (son.op == self.op) then
-                    nsons.push(*son)
+        def flatten # :nodoc:
+            return NodeNary.make(@op,*(@children.reduce([]) do |nchildren,child|
+                if (child.op == self.op) then
+                    nchildren.push(*child)
                 else
-                    nsons << son
+                    nchildren << child
                 end
             end)).reduce
         end
 
-        ## Flatten hierachical ands, ors and nots, removing redudancies.
-        #  Return: the new tree
-        def flatten_deep
-            return NodeNary.make(@op,*(@sons.reduce([]) do |nsons,son|
-                son = son.flatten_deep
-                if (son.op == self.op) then
-                    nsons.push(*son)
+        ## Creates a new tree where all the *and*, *or* and *not* operators 
+        #  from the current node are flattened.
+        #
+        #  Default: simply duplicate.
+        def flatten_deep # :nodoc:
+            return NodeNary.make(@op,*(@children.reduce([]) do |nchildren,child|
+                child = child.flatten_deep
+                if (child.op == self.op) then
+                    nchildren.push(*child)
                 else
-                    nsons << son
+                    nchildren << child
                 end
             end)).reduce
         end
 
-        ## Distribute over a given operator.
-        #  Params: 
-        #  +dop+::  the operator to distribute over
-        #  +node+:: the node to distribute with
-        def distribute(dop,node)
+        ## Creates a new tree where the current node is distributed over +node+
+        #  according to the +dop+ operator.
+        def distribute(dop,node) # :nodoc:
             fop = dop == :and ? :or : :and
             # print "dop=#{dop} fop=#{fop} self.op=#{@op}\n"
             if (@op == dop) then
@@ -556,60 +556,61 @@ module LogicTools
                 # self operator if fop
                 if (node.op == fop) then
                     # node operator is also fop: (a+b)(c+d) or ab+cd case
-                    nsons = []
-                    self.each do |son0|
-                        node.each do |son1|
-                            # print "son0=#{son0}, son1=#{son1}\n"
-                            nsons << NodeNary.make(dop, son0, son1).flatten
-                            # print "nsons=#{nsons}\n"
+                    nchildren = []
+                    self.each do |child0|
+                        node.each do |child1|
+                            # print "child0=#{child0}, child1=#{child1}\n"
+                            nchildren << 
+                                NodeNary.make(dop, child0, child1).flatten
+                            # print "nchildren=#{nchildren}\n"
                         end
                     end
-                    return NodeNary.make(fop,*nsons).flatten
+                    return NodeNary.make(fop,*nchildren).flatten
                 else
                     # node operator is not fop: (a+b)c or ab+c case
-                    nsons = self.map do |son|
-                        NodeNary.make(dop,son,node).flatten
+                    nchildren = self.map do |child|
+                        NodeNary.make(dop,child,node).flatten
                     end
-                    return NodeNary.make(fop,*nsons).flatten
+                    return NodeNary.make(fop,*nchildren).flatten
                 end
             end
         end
     end
 
-    ## An AND node
+    
+    ## 
+    # Represents an AND node
     class NodeAnd < NodeNary
-        ## Initialize by building a new nary node whose operator is and.
-        #  Params:
-        #  +sons+:: the sons
-        def initialize(*sons)
-            super(:and,*sons)
+
+        #  Creates a new AND node with +children+. 
+        def initialize(*children)
+            super(:and,*children)
         end
 
         ## Duplicates the node.
-        def dup
-            return NodeAnd.new(@sons.map(&:dup))
+        def dup # :nodoc:
+            return NodeAnd.new(@children.map(&:dup))
         end
 
-        ## Evaluate the node.
+        ## Computes the value of the node.
         def eval()
-            return !@sons.any? {|son| son.eval() == false }
+            return !@children.any? {|child| child.eval() == false }
         end
 
-        ## Convert to a sum of product.
-        #  Params:
-        #  +flattened+:: tell of the tree is already flatttend
-        #  Return: the conversion result
-        def to_sum_product(flattened = false)
+        ## Creates a sum fo product from the tree rooted by current node.
+        #
+        #  Argument +flattened+ tells if the tree is already flattend
+        def to_sum_product(flattened = false) # :nodoc:
             # Flatten if required
             node = flattened ? self : self.flatten_deep
             # print "node = #{node}\n"
-            # Convert each son to sum of product
-            nsons = node.map {|son| son.to_sum_product(true) }
-            # print "nsons = #{nsons}\n"
+            # Convert each child to sum of product
+            nchildren = node.map {|child| child.to_sum_product(true) }
+            # print "nchildren = #{nchildren}\n"
             # Distribute
-            while(nsons.size>1)
+            while(nchildren.size>1)
                 dist = []
-                nsons.each_slice(2) do |left,right|
+                nchildren.each_slice(2) do |left,right|
                     # print "left=#{left}, right=#{right}\n"
                     if right then
                         dist << (left.op == :or ? left.distribute(:and,right) :
@@ -619,28 +620,28 @@ module LogicTools
                     end
                 end
                 # print "dist=#{dist}\n"
-                nsons = dist
+                nchildren = dist
             end
-            # print "Distributed nsons=#{nsons}\n"
+            # print "Distributed nchildren=#{nchildren}\n"
             # Generate the or
-            if (nsons.size > 1)
-                return NodeOr.new(*nsons)
+            if (nchildren.size > 1)
+                return NodeOr.new(*nchildren)
             else
-                return nsons[0]
+                return nchildren[0]
             end
         end
 
         ## Convert to a string.
-        def to_s
+        def to_s # :nodoc:
             return @str if @str
             @str = ""
-            # Convert the sons to a string
-            @sons.each do |son|
-                if (son.op == :or) then
+            # Convert the children to a string
+            @children.each do |child|
+                if (child.op == :or) then
                     # Yes, need parenthesis
-                    @str << ( "(" + son.to_s + ")" )
+                    @str << ( "(" + child.to_s + ")" )
                 else
-                    @str << son.to_s
+                    @str << child.to_s
                 end
             end
             return @str
@@ -648,159 +649,161 @@ module LogicTools
     end
 
 
-    ## An OR node
+    ## 
+    # Represents an OR node
     class NodeOr < NodeNary
-        ## Initialize by building a new nary node whose operator is or
-        #  @param sons the sons
-        def initialize(*sons)
-            super(:or,*sons)
+
+        #  Creates a new OR node with +children+. 
+        def initialize(*children)
+            super(:or,*children)
         end
 
-        ## Duplicates the node
-        def dup
-            return NodeOr.new(@sons.map(&:dup))
+        ## Duplicates the node.
+        def dup # :nodoc:
+            return NodeOr.new(@children.map(&:dup))
         end
 
-        ## Evaluate the node
+        ## Computes the value of the node.
         def eval
-            return @sons.any? {|son| son.eval() == true }
+            return @children.any? {|child| child.eval() == true }
         end
 
-        ## Convert to a sum of product
-        #  @param flattened tell of the tree is already flatttend
-        #  @return the conversion result
-        def to_sum_product(flattened = false)
-            return NodeOr.new(*@sons.map {|son| son.to_sum_product(flatten) })
+        ## Creates a sum fo product from the tree rooted by current node.
+        #
+        #  Argument +flattened+ tells if the tree is already flattend
+        def to_sum_product(flattened = false) # :nodoc:
+            return NodeOr.new(
+                *@children.map {|child| child.to_sum_product(flatten) } )
         end
 
-        ## Converts to a string
-        def to_s
+        ## Converts to a string.
+        def to_s # :nodoc:
             return @str if @str
-            # Convert the sons to string a insert "+" between them
-            @str = @sons.join("+")
+            # Convert the children to string a insert "+" between them
+            @str = @children.join("+")
             return @str
         end
     end
 
 
 
-    # An unary node
+    ##
+    # Represents an unary node.
     class NodeUnary < Node
-        attr_reader :op, :son
+        attr_reader :op, :child
 
-        ## Initialize with the operator.
-        #  Params:
-        #  +op+:: the operator name
-        #  +son+:: the son node
-        def initialize(op,son)
-            if !son.is_a?(Node) then
-                raise ArgumentError.new("Not a valid object for son.")
+        ## Creates a node with operator +op+ and a +child+.
+        def initialize(op,child)
+            if !child.is_a?(Node) then
+                raise ArgumentError.new("Not a valid object for child.")
             end
             @op = op.to_sym
-            @son = son
+            @child = child
             @sym = self.to_s.to_sym
         end
 
-        ## Get the size (number of sons).
-        def size
+        ## Gets the number of children.
+        def size # :nodoc:
             1
         end
 
-        # ## Set the son node
-        # #  @param son the node to set
-        # def son=(son)
+        # ## Set the child node
+        # #  @param child the node to set
+        # def child=(child)
         #     # Checks it is a valid object
-        #     if !son.is_a?(Node) then
-        #         raise ArgumentError.new("Not a valid object for son.")
+        #     if !child.is_a?(Node) then
+        #         raise ArgumentError.new("Not a valid object for child.")
         #     else
-        #         @son = son
+        #         @child = child
         #     end
         # end
 
-        ## Get the variables in an array recursively.
-        #  Return: the variables into an array with possible doublon
-        def getVariablesRecurse()
-            return @son.getVariablesRecurse
+        ## Gets the variables, recursively, without postprocessing.
+        #
+        #  Returns the variables into sets of arrays with possible doublon
+        def getVariablesRecurse() # :nodoc:
+            return @child.getVariablesRecurse
         end
 
-        ## Iterate on the sons.
-        def each
-            yield(@son)
+        ## Iterates over the children.
+        def each # :nodoc:
+            yield(@child)
         end
 
-        ## Compare with another node.
-        #  Params:
-        #  +n+:: the node to compare with
-        def ==(n)
-            return false unless n.is_a?(Node)
+        ## Compares with +node+.
+        def ==(node) # :nodoc:
+            return false unless node.is_a?(Node)
             return false unless self.op == n.op
-            return self.son == n.son
+            return self.child == node.child
         end
 
-        ## Convert to a symbol.
-        def to_sym
+        ## Converts to a symbol.
+        def to_sym # :nodoc:
             return @sym
         end
     end
 
-    ## A NOT node
+    ## 
+    # Represents a NOT node.
     class NodeNot < NodeUnary
-        ## Initialize by building a new unary node whose operator is not.
-        #  Params:
-        #  +son+:: the son
-        def initialize(son)
-            super(:not,son)
+        ## Creates a NOT node with a +child+. 
+        def initialize(child)
+            super(:not,child)
         end
 
         ## Duplicates the node.
-        def dup
-            return NodeNot.new(@son.dup)
+        def dup # :nodoc:
+            return NodeNot.new(@child.dup)
         end
 
-        ## Evaluate the node.
-        def eval
-            return !son.eval
+        ## Computes the value of the node.
+        def eval # :nodoc:
+            return !child.eval
         end
 
-        ## Flatten ands, ors and nots.
-        #  Default: simply duplicate
-        def flatten
-            if nson.op == :not then
-                return nson
+        ## Creates a new tree where the *and*, *or* or *not* operator of
+        #  the current node is flattened.
+        #
+        #  Default: simply duplicates the node.
+        def flatten # :nodoc:
+            nchild = @child.flatten
+            if nchild.op == :not then
+                return nchild.child
             else
-                return NodeNot.new(nson)
+                return NodeNot.new(nchild)
             end
         end
 
-        ## Flatten hierachical ands, ors and nots.
-        #  Return: the new tree
-        def flatten_deep
-            nson = @son.flatten_deep
-            if nson.op == :not then
-                return nson
+        ## Creates a new tree where all the *and*, *or* and *not* operators 
+        #  from the current node are flattened.
+        #
+        #  Default: simply duplicate.
+        def flatten_deep # :nodoc:
+            nchild = @child.flatten_deep
+            if nchild.op == :not then
+                return nchild.child
             else
-                return NodeNot.new(nson)
+                return NodeNot.new(child)
             end
         end
 
-        ## Convert to a sum of product.
-        #  Params:
-        #  +flattened+:: tell of the tree is already flatttend
-        #  Return: the conversion result
-        def to_sum_product(flattened = false)
-            return NodeNot.new(@son.to_sum_product(flatten))
+        ## Creates a sum fo product from the tree rooted by current node.
+        #
+        #  Argument +flattened+ tells if the tree is already flattend
+        def to_sum_product(flattened = false) # :nodoc:
+            return NodeNot.new(@child.to_sum_product(flatten))
         end
 
         ## Converts to a string.
-        def to_s
+        def to_s # :nodoc:
             return @str if @str
-            # Is the son a binary node?
-            if son.op == :or || son.op == :and then
+            # Is the child a binary node?
+            if child.op == :or || child.op == :and then
                 # Yes must put parenthesis
-                @str = "~(" + son.to_s + ")"
+                @str = "~(" + child.to_s + ")"
             else
                 # No
-                @str = "~" + son.to_s
+                @str = "~" + child.to_s
             end
             return @str
         end
