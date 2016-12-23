@@ -72,6 +72,7 @@ module LogicTools
     ## 
     # Represents a node of a tree representing a logical expression.
     class Node
+
         include Enumerable
 
         ## Gets a array containing the variables of the tree sorted by name.
@@ -100,9 +101,11 @@ module LogicTools
         #  Iteration parameters (for the current line of the truth table):
         #  * +vars+: the variables of the expression 
         #  * +val+:  the value of the expression
-        #  --
-        #  TODO generate an Enumerator.
         def each_line
+            # No block given? Return an enumerator.
+            return to_enum(:each_line) unless block_given?
+
+            # Block given? Apply it.
             # Get the variables
             vars = self.getVariables
             # Compute the number of iterations
@@ -123,9 +126,11 @@ module LogicTools
         #
         #  Iteration parameters:
         #  * +vars+: the variables of the expression
-        #  --
-        #  TODO generate an Enumerator.
         def each_minterm
+            # No block given? Return an enumerator.
+            return to_enum(:each_minterm) unless block_given?
+
+            # Block given? Apply it.
             each_line { |vars,val| yield(vars) if val }
         end
 
@@ -133,9 +138,11 @@ module LogicTools
         #
         #  Iteration parameters:
         #  * +vars+: the variables of the expression
-        #  --
-        #  TODO generate an Enumerator.
         def each_maxterm
+            # No block given? Return an enumerator.
+            return to_enum(:each_maxterm) unless block_given?
+
+            # Block given? Apply it.
             each_line do |vars,val|
                 unless val then
                     vars.each { |var| var.value = !var.value }
@@ -145,10 +152,10 @@ module LogicTools
         end
 
         ## Iterate over the children.
-        #
-        #  --
-        #  TODO generate an Enumerator.
         def each
+            # No block given? Return an enumerator.
+            return to_enum(:each) unless block_given?
+            # Block given? No child, so nothing to do anyway...
         end
 
         ## Generates the equivalent standard conjunctive form.
@@ -360,7 +367,6 @@ module LogicTools
     # Represents an operator node with multiple children.
     class NodeNary < Node 
         extend Forwardable
-        include Enumerable
 
         attr_reader :op
 
@@ -399,6 +405,10 @@ module LogicTools
 
         ## Iterates over the children.
         def each(&blk) # :nodoc:
+            # No block given? Return an enumerator.
+            return to_enum(:each) unless blk
+
+            # Block given? Apply it.
             @children.each(&blk)
             return self
         end
@@ -727,6 +737,10 @@ module LogicTools
 
         ## Iterates over the children.
         def each # :nodoc:
+            # No block given? Return an enumerator.
+            return to_enum(:each) unless block_given?
+
+            # Block given? Apply it.
             yield(@child)
         end
 
