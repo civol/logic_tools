@@ -84,7 +84,13 @@ module LogicTools
         end
 
         ## Iterates over the bits of the implicant.
+        # 
+        #  Returns an enumerator if no block given.
         def each(&blk)
+            # No block given? Returns an enumerator
+            return to_enum(:each) unless block_given?
+            
+            # Block given? Applies it on each bit.
             @bits.each_char(&blk)
         end
 
@@ -212,7 +218,7 @@ module LogicTools
     ## 
     #  Describes a pseudo variable associated to an implicant.
     #
-    #  Used for the Petrick's method
+    #  Used for the Petrick's method.
     class VarImp < Variable
         @@base = 0 # The index of the VarImp for building the variable names
 

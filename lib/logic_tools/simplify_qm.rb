@@ -10,8 +10,8 @@ require "logic_tools/logictree.rb"
 # For parsing the inputs
 require "logic_tools/logicparse.rb"
 
-# For simplifying
-require "logic_tools/logicsimplify.rb"
+# For simplifying with the Quine Mc Cluskey method.
+require "logic_tools/logicsimplify_qm.rb"
 
 # For the command line interface
 require "logic_tools/logicinput.rb"
