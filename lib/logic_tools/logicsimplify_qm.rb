@@ -6,6 +6,7 @@
 
 require 'set'
 
+require "logic_tools/logictree.rb"
 
 module LogicTools
 
@@ -69,7 +70,7 @@ module LogicTools
             @prime = true # By default assumed prime
         end
 
-        ## Converts to a string
+        ## Converts to a string.
         def to_s # :nodoc:
             @bits
         end

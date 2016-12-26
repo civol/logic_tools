@@ -4,6 +4,7 @@
 
 require 'forwardable'
 
+
 module LogicTools
 
     ## 
