@@ -221,6 +221,14 @@ module LogicTools
             return self.dup
         end
 
+        ## Reduce the node by removing redundancy from it.
+        #
+        #  NOTE: this is not the same purpose a Enumerable::reduce.
+        def reduce
+            # By default, no possible reduction.
+            self.clone
+        end
+
         ## Creates a new tree where the current node is distributed over +node+
         #  according to the +dop+ operator.
         def distribute(dop,node)
@@ -384,7 +392,11 @@ module LogicTools
 
         ## Converts to a string.
         def to_s # :nodoc:
-            return variable.to_s
+            result = variable.to_s
+            # Variables using more than one character are parenthesized
+            # to avoid confunsion with the AND operator.
+            result = "{" + result + "}" if (result.size > 1)
+            return result
         end
     end
 
@@ -479,6 +491,7 @@ module LogicTools
         def ==(node) # :nodoc:
             return false unless node.is_a?(Node)
             return false unless self.op == node.op
+            return false unless self.size == node.size
             # There is no find_with_index!
             # return ! @children.find_with_index {|child,i| child != node[i] }
             @children.each_with_index do |child,i|
@@ -487,10 +500,18 @@ module LogicTools
             return true
         end
 
-        ## Tells if the +self+ includes +tree+.
+        ## Tells if +self+ includes +tree+.
+        #
+        #  NOTE: * This is a tree inclusion, not a logical inclusion.
+        #        * It is assumed that the trees are sorted.
         def include?(tree)
-            return true if self == tree # Same tree, so inclusion.
-            # Check each child
+            # Check from current node.
+            if self.op == tree.op and self.size >= tree.size then
+                return true unless tree.each.with_index.find do |child,i|
+                    child != @children[i]
+                end
+            end
+            # Check each child.
             @children.each do |child|
                 return true if child.include?(tree)
             end
