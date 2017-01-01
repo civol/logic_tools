@@ -77,9 +77,16 @@ module LogicTools
         include Enumerable
 
         ## Gets a array containing the variables of the tree sorted by name.
-        def getVariables()
-            result = self.getVariablesRecurse
+        def get_variables()
+            result = self.get_variablesRecurse
             return result.flatten.uniq.sort
+        end
+
+        ## Tells if the node is a parent.
+        #
+        #  Default: +false+.
+        def is_parent?
+            return false
         end
 
         ## Gets the operator.
@@ -108,7 +115,7 @@ module LogicTools
 
             # Block given? Apply it.
             # Get the variables
-            vars = self.getVariables
+            vars = self.get_variables
             # Compute the number of iterations
             nlines = 2**vars.size
             # Generates each bit value for the variables and the
@@ -210,6 +217,7 @@ module LogicTools
         #
         #  Default: simply duplicate.
         def flatten_deep
+            # print "flatten_deep #1 with self=#{self}\n"
             return self.dup
         end
 
@@ -257,6 +265,12 @@ module LogicTools
         def eql?(val) # :nodoc:
             self == val
         end
+
+        ## Tells if the +self+ includes +tree+.
+        def include?(tree)
+            # By default: no.
+            return false
+        end
     end
 
     
@@ -277,7 +291,7 @@ module LogicTools
         ## Gets the variables, recursively, without postprocessing.
         #
         #  Returns the variables into sets of arrays with possible doublon
-        def getVariablesRecurse() # :nodoc:
+        def get_variablesRecurse() # :nodoc:
             return [ ]
         end
 
@@ -285,6 +299,11 @@ module LogicTools
         def ==(node) # :nodoc:
             return false unless node.is_a?(NodeValue)
             return self.eval() == node.eval()
+        end
+
+        ## Tells if the +self+ includes +tree+.
+        def include?(tree)
+            return ( tree.is_a?(NodeValue) and self.eval() == tree.eval() )
         end
 
         ## Computes the value of the node.
@@ -335,6 +354,11 @@ module LogicTools
             @sym = @variable.to_s.to_sym
         end
 
+        ## Tells if the +self+ includes +tree+.
+        def include?(tree)
+            return (tree.is_a?(NodeVar) and self.variable == tree.variable )
+        end
+
         ## Computes the value of the node.
         def eval()
             return @variable.value
@@ -348,7 +372,7 @@ module LogicTools
         ## Gets the variables, recursively, without postprocessing.
         #
         #  Returns the variables into sets of arrays with possible doublon
-        def getVariablesRecurse() # :nodoc:
+        def get_variablesRecurse() # :nodoc:
             return [ @variable ]
         end
 
@@ -400,6 +424,10 @@ module LogicTools
             end
         end
 
+        ## Tells if the node is a parent.
+        def is_parent?
+            return true
+        end
 
         # Also acts as an array of nodes
         def_delegators :@children, :[], :empty?, :size
@@ -441,9 +469,9 @@ module LogicTools
         ## Gets the variables, recursively, without postprocessing.
         #
         #  Returns the variables into sets of arrays with possible doublon
-        def getVariablesRecurse() # :nodoc:
+        def get_variablesRecurse() # :nodoc:
             return @children.reduce([]) do |res,child|
-                res.concat(child.getVariablesRecurse)
+                res.concat(child.get_variablesRecurse)
             end
         end
 
@@ -457,6 +485,17 @@ module LogicTools
                 return false if child != node[i]
             end
             return true
+        end
+
+        ## Tells if the +self+ includes +tree+.
+        def include?(tree)
+            return true if self == tree # Same tree, so inclusion.
+            # Check each child
+            @children.each do |child|
+                return true if child.include?(tree)
+            end
+            # Do not include.
+            return false
         end
 
         # WRONG
@@ -496,28 +535,24 @@ module LogicTools
         def reduce
             # The operator used for the factors
             fop = @op == :and ? :or : :and
-            # Gather the terms converted to a sorted string for fast
-            # comparison
+            # Gather the terms to sorted nodes
             terms = @children.map do |child|
-                if (child.op == fop) then
-                    [ child, child.sort.to_s ]
-                else
-                    [ child, child.to_s ]
-                end
+                child.op == fop ? child.sort : child
             end
             nchildren = []
             # Keep only the terms that do not contain another one
+            # TODO: this loop could be faster I think...
             terms.each_with_index do |term0,i|
                 skipped = false
                 terms.each_with_index do |term1,j|
                     next if (i==j) # Same term
-                    if (term0[1].include?(term1[1])) and term0[1]!=term1[1] then
+                    if (term0.include?(term1) and term0 != term1) then
                         # term0 contains term1 but is different, skip it
                         skipped = true
                         break
                     end
                 end
-                nchildren << term0[0] unless skipped # Term has not been skipped
+                nchildren << term0 unless skipped # Term has not been skipped
             end
             # Avoid duplicates
             nchildren.uniq!
@@ -614,10 +649,9 @@ module LogicTools
         def to_sum_product(flattened = false) # :nodoc:
             # Flatten if required
             node = flattened ? self : self.flatten_deep
-            # print "node = #{node}\n"
+            return node unless node.is_parent?
             # Convert each child to sum of product
             nchildren = node.map {|child| child.to_sum_product(true) }
-            # print "nchildren = #{nchildren}\n"
             # Distribute
             while(nchildren.size>1)
                 dist = []
@@ -633,7 +667,6 @@ module LogicTools
                 # print "dist=#{dist}\n"
                 nchildren = dist
             end
-            # print "Distributed nchildren=#{nchildren}\n"
             # Generate the or
             if (nchildren.size > 1)
                 return NodeOr.new(*nchildren)
@@ -713,6 +746,11 @@ module LogicTools
             @sym = self.to_s.to_sym
         end
 
+        ## Tells if the node is a parent.
+        def is_parent?
+            return true
+        end
+
         ## Gets the number of children.
         def size # :nodoc:
             1
@@ -732,8 +770,8 @@ module LogicTools
         ## Gets the variables, recursively, without postprocessing.
         #
         #  Returns the variables into sets of arrays with possible doublon
-        def getVariablesRecurse() # :nodoc:
-            return @child.getVariablesRecurse
+        def get_variablesRecurse() # :nodoc:
+            return @child.get_variablesRecurse
         end
 
         ## Iterates over the children.
@@ -748,8 +786,17 @@ module LogicTools
         ## Compares with +node+.
         def ==(node) # :nodoc:
             return false unless node.is_a?(Node)
-            return false unless self.op == n.op
+            return false unless self.op == node.op
             return self.child == node.child
+        end
+
+        ## Tells if the +self+ includes +tree+.
+        def include?(tree)
+            return true if self == tree # Same tree, so inclusion.
+            # Check the child
+            return true if @child.include?(tree)
+            # Do not include
+            return false
         end
 
         ## Converts to a symbol.

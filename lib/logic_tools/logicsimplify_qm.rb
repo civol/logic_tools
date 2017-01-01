@@ -378,7 +378,7 @@ module LogicTools
 
             # print "Selected prime implicants are: #{selected}\n"
             # Generate the resulting tree
-            variables = self.getVariables()
+            variables = self.get_variables()
             # First generate the prime implicants trees
             selected.map! do |prime|
                 # Generate the litterals 

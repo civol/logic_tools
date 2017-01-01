@@ -39,7 +39,7 @@ include LogicTools
 # $parsed = string2logic($expr)
 # 
 # # Display the variables
-# $vars = $parsed.getVariables
+# $vars = $parsed.get_variables
 # $vars.each { |var| print "#{var} " }
 # print "\n"
 # 
@@ -55,7 +55,7 @@ each_input do |expr|
     parsed = string2logic(expr)
 
     # Display the variables
-    vars = parsed.getVariables
+    vars = parsed.get_variables
     vars.each { |var| print "#{var} " }
     print "\n"
 
