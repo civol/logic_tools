@@ -515,6 +515,7 @@ module LogicTools
                 #
                 # +result+ is the final complement cover.
                 result = Cover.new(*@variables)
+                # print "mins=#{mins}\n"
                 mins.each do |min|
                     # +cbits+ is the bit string describing the cube built
                     # from the column cover +min+.
@@ -526,7 +527,7 @@ module LogicTools
                             cbits[col] = "1"
                         end
                     end
-                    result << Cube.new(cbits)      
+                    result << Cube.new(cbits)
                 end
                 return result
             else

@@ -18,7 +18,8 @@ module LogicTools
             # Get the variables for converting them to indexes in the cubes
             vars = self.get_variables
             # Converts the tree rooted by self to a sum of products
-            tree = self.to_sum_product
+            # (reduced to limit the number of cubes and their sizes).
+            tree = self.to_sum_product.reduce
             # Create an empty cover.
             cover = Cover.new(*vars)
             # Fill it with the cubes corresponding to each product

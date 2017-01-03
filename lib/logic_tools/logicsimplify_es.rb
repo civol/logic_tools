@@ -90,19 +90,20 @@ module LogicTools
     def expand(on,off)
         # Step 1: sort the cubes by weight.
         on = order(on)
-        print "#3.1 #{Time.now}\n"
+        # print "#3.1 #{Time.now}\n"
 
         # Create the resulting cover.
         cover = Cover.new(*on.each_variable)
 
         # Step 2: Expand the cubes in order of their weights.
         on.each_cube do |cube|
-            print "#3.2 #{Time.now} cube=#{cube}\n"
+            # print "#3.2 #{Time.now} cube=#{cube}\n"
             # Builds the blocking matrix
             blocking = cube.blocking_matrix(off)
             # Select the smallest minimal column cover of the blocking
             # matrix: it will be the expansion
             col_cover = minimal_column_covers(blocking[1..-1],true)
+            # print "col_cover=#{col_cover}\n"
             # This is the new cube
             bits = "-" * cube.width
             col_cover.each do |col|
@@ -111,6 +112,7 @@ module LogicTools
                 col = blocking[0][col] 
                 bits[col] = cube[col]
             end
+            # print "expand result=#{bits}\n"
             # Create and add the new expanded cube.
             cover << Cube.new(bits)
         end
@@ -305,32 +307,37 @@ module LogicTools
         def simplify()
             # Initialization
 
-            print "#0 #{Time.now}\n"
+            # print "#0 #{Time.now}\n"
             # Step 1: generate the initial cover: on [F].
             on = self.to_cover
-            print "#1 #{Time.now}\n"
+            # print "on=#{on}\n"
+            # print "#1 #{Time.now}\n"
             # And the initial set of don't care: dc [D].
             dc = Cover.new(*on.each_variable) # At first dc is empty
 
-            print "#2 #{Time.now}\n"
+            # print "#2 #{Time.now}\n"
             # Step 2: generate the complement cover: off [R = COMPLEMENT(F)].
             off = on.complement
+            # print "off=#{off}\n"
 
-            print "#3 #{Time.now}\n"
+            # print "#3 #{Time.now}\n"
             # Step 3: perform the initial expansion [F = EXPAND(F,R)].
             on = expand(on,off)
+            # print "on=#{on}\n"
 
-            print "#4 #{Time.now}\n"
+            # print "#4 #{Time.now}\n"
             # Step 4: perform the irredundant cover [F = IRREDUNDANT(F,D)].
             on = irredundant(on,dc)
             # Also remove the duplicates
             on.uniq!
+            # print "on=#{on}\n"
 
-            print "#5 #{Time.now}\n"
+            # print "#5 #{Time.now}\n"
             # Step 5: Detect the essential primes [E = ESSENTIAL(F,D)].
             essentials = essentials(on,dc)
+            # print "essentials=#{essentials}\n"
 
-            print "#6 #{Time.now}\n"
+            # print "#6 #{Time.now}\n"
             # Step 6: remove the essential primes from on and add them to dc
             on = on - essentials
             dc = dc + essentials
@@ -339,7 +346,7 @@ module LogicTools
             
             # Computes the initial cost
             new_cost = cost(on)
-            print "After prerpocessing, cost=#{new_cost}\n"
+            # print "After prerpocessing, cost=#{new_cost}\n"
             begin
                 cost = new_cost
                 # Step 1: perform the reduction of on [F = REDUCE(F,D)]
@@ -352,7 +359,7 @@ module LogicTools
                 on.uniq!
                 # Step 4: compute the cost
                 new_cost = cost(on)
-                print "cost=#{new_cost}\n"
+                # print "cost=#{new_cost}\n"
             end while(new_cost < cost)
 
             # Readd the essential primes to the on result

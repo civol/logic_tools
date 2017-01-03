@@ -233,12 +233,16 @@ module LogicTools
         #  according to the +dop+ operator.
         def distribute(dop,node)
             fop = dop == :and ? :or : :and
-            # print "dop=#{dop}, fop=#{fop}, node.op=#{node.op}\n"
             if (node.op == dop) then
                 # Same operator: merge self in node
                 return NodeNary.make(dop, self, *node)
             elsif (node.op == fop) then
                 # Opposite operator: can distribute
+                # result = NodeNary.make(dop)
+                # node.each do |child|
+                #     result << NodeNary.make(dop,child,self).flatten
+                # end
+                # return result.flatten
                 nchildren = node.map do |child|
                     NodeNary.make(dop,child,self).flatten
                 end
@@ -291,7 +295,8 @@ module LogicTools
         ## Creates a node by +value+.
         def initialize(value) # :nodoc:
             @value = value
-            @sym = @value.to_s.to_sym
+            # @sym = @value.to_s.to_sym
+            @sym = nil
         end
 
         public
@@ -321,6 +326,7 @@ module LogicTools
 
         ## Converts to a symbol.
         def to_sym # :nodoc:
+            @sym = @value.to_s.to_sym unless @sym
             return @sym
         end
 
@@ -359,7 +365,8 @@ module LogicTools
         ## Creates a node with variable +name+.
         def initialize(name)
             @variable = Variable.get(name)
-            @sym = @variable.to_s.to_sym
+            # @sym = @variable.to_s.to_sym
+            @sym = nil
         end
 
         ## Tells if the +self+ includes +tree+.
@@ -374,6 +381,7 @@ module LogicTools
 
         ## Converts to a symbol.
         def to_sym # :nodoc:
+            @sym = @variable.to_s.to_sym unless @sym
             return @sym
         end
 
@@ -420,7 +428,8 @@ module LogicTools
             # Children are ok
             @op = op.to_sym
             @children = children
-            @sym = self.to_s.to_sym
+            # @sym = self.to_s.to_sym
+            @sym = nil
         end
 
         public
@@ -443,6 +452,15 @@ module LogicTools
 
         # Also acts as an array of nodes
         def_delegators :@children, :[], :empty?, :size
+
+        ## Adds a +child+.
+        def add(child)
+            unless child.is_a?(Node) then
+                raise ArgumentError.new("Not a valid class for a child: "+
+                                        "#{child.class}")
+            end
+            @children << child
+        end
 
         ## Iterates over the children.
         def each(&blk) # :nodoc:
@@ -475,6 +493,7 @@ module LogicTools
 
         ## Converts to a symbol.
         def to_sym # :nodoc:
+            @sym = self.to_s.to_sym unless @sym
             return @sym
         end
 
@@ -656,7 +675,7 @@ module LogicTools
 
         ## Duplicates the node.
         def dup # :nodoc:
-            return NodeAnd.new(@children.map(&:dup))
+            return NodeAnd.new(*@children.map(&:dup))
         end
 
         ## Computes the value of the node.
@@ -677,7 +696,6 @@ module LogicTools
             while(nchildren.size>1)
                 dist = []
                 nchildren.each_slice(2) do |left,right|
-                    # print "left=#{left}, right=#{right}\n"
                     if right then
                         dist << (left.op == :or ? left.distribute(:and,right) :
                                                   right.distribute(:and,left))
@@ -685,7 +703,6 @@ module LogicTools
                         dist << left
                     end
                 end
-                # print "dist=#{dist}\n"
                 nchildren = dist
             end
             # Generate the or
@@ -725,7 +742,7 @@ module LogicTools
 
         ## Duplicates the node.
         def dup # :nodoc:
-            return NodeOr.new(@children.map(&:dup))
+            return NodeOr.new(*@children.map(&:dup))
         end
 
         ## Computes the value of the node.
@@ -764,7 +781,8 @@ module LogicTools
             end
             @op = op.to_sym
             @child = child
-            @sym = self.to_s.to_sym
+            # @sym = self.to_s.to_sym
+            @sym = nil
         end
 
         ## Tells if the node is a parent.
@@ -822,6 +840,7 @@ module LogicTools
 
         ## Converts to a symbol.
         def to_sym # :nodoc:
+            @sym = self.to_s.to_sym unless @sym
             return @sym
         end
     end
@@ -874,7 +893,29 @@ module LogicTools
         #
         #  Argument +flattened+ tells if the tree is already flattend
         def to_sum_product(flattened = false) # :nodoc:
-            return NodeNot.new(@child.to_sum_product(flatten))
+            # return NodeNot.new(@child.to_sum_product(flatten))
+            # Flatten deeply if required.
+            nnode = flattened ? self : self.flatten_deep
+            if (nnode.op != :not) then
+                # Not a NOT any longer.
+                return nnode.to_sum_product
+            end
+            # Still a NOT, so apply De Morgan's law.
+            child = nnode.child
+            if child.op == :or then
+                # Can apply De Morgan's law for OR.
+                return NodeAnd.new( *child.each.map do |n|
+                    NodeNot.new(n).to_sum_product
+                end ).to_sum_product
+            elsif child.op == :and then
+                # Can apply De Morgan's law for AND.
+                return NodeOr.new( *child.each.map do |n|
+                    NodeNot.new(n).to_sum_product
+                end )
+            else
+                # Nothing to do more.
+                return nnode
+            end
         end
 
         ## Converts to a string.
