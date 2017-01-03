@@ -294,20 +294,17 @@ module LogicTools
     end
 
 
-    # Enhances the Node class with expression simplifying using the
-    # Espresso algorithm.
-    class Node
-
-        ## Generates an equivalent but simplified representation of the
-        #  expression represented by the tree rooted by the current node.
+    # Enhances the Cover class with simplifying using the Espresso
+    # algorithm.
+    class Cover
+        ## Generates an equivalent but simplified cover.
         #
         #  Uses the Espresso method.
         def simplify()
             # Initialization
-
-            # print "#0 #{Time.now}\n"
-            # Step 1: generate the initial cover: on [F].
-            on = self.to_cover
+            #
+            # Step1: the on set is a copy of self [F].
+            on = self.clone
             # print "on=#{on}\n"
             # print "#1 #{Time.now}\n"
             # And the initial set of don't care: dc [D].
@@ -363,8 +360,28 @@ module LogicTools
             # Readd the essential primes to the on result
             on += essentials
 
-            # Generate the resulting tree from the resulting on set
-            return on.to_tree
+            # This is the resulting cover.
+            return on
+        end
+    end
+
+
+    # Enhances the Node class with expression simplifying using the
+    # Espresso algorithm.
+    class Node
+
+        ## Generates an equivalent but simplified representation of the
+        #  expression represented by the tree rooted by the current node.
+        #
+        #  Uses the Espresso method.
+        def simplify()
+            # Initialization
+
+            # Step 1: generate the simplified cover.
+            cover = self.to_cover.simplify
+
+            # Step 2: generate the resulting tree from the resulting cover.
+            return cover.to_tree
         end
     end
 end
