@@ -4,8 +4,6 @@
 ###################################################################
 
 
-require 'set'
-
 require "logic_tools/logictree.rb"
 require "logic_tools/logiccover.rb"
 require "logic_tools/minimal_column_covers.rb"

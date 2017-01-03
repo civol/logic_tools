@@ -15,6 +15,15 @@ module LogicTools
     class Node
         ## Converts to a cover.
         def to_cover()
+            # Check the cases of trivial trees.
+            if self.is_a?(NodeTrue) then
+                cover = Cover.new("all")
+                cover << Cube.new("-")
+                return cover
+            elsif self.is_a?(NodeFalse) then
+                return Cover.new()
+            end
+
             # Get the variables for converting them to indexes in the cubes
             vars = self.get_variables
             # Converts the tree rooted by self to a sum of products
