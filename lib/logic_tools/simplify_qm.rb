@@ -16,9 +16,6 @@ require "logic_tools/logicsimplify_qm.rb"
 # For the command line interface
 require "logic_tools/logicinput.rb"
 
-# For the command line interface
-require "logic_tools/logicinput.rb"
-
 include LogicTools
 
 
@@ -28,19 +25,6 @@ include LogicTools
 ############################
 # The main program
 
-## Now use the common command line interface
-# # First gets the expression to treat
-# $expr = nil
-# # Is it in the arguments?
-# unless $*.empty? then
-#     # Yes, get the expression from them
-#     $expr = $*.join
-# else
-#     # Get the expression from standard input
-#     print "Please enter your expression and end with ^D:\n"
-#     $expr = ARGF.read
-# end
-# 
 
 # Iterrate on each expression
 each_input do |expr|
