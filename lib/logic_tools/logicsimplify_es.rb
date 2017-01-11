@@ -1,8 +1,3 @@
-###################################################################
-# Logic tree classes extension for simplifying a logic expression #
-# using the Espresso method                                       #
-###################################################################
-
 
 require "logic_tools/logictree.rb"
 require "logic_tools/logiccover.rb"
@@ -35,6 +30,7 @@ module LogicTools
             blocking << litterals
             # Build the other rows: one per cube of the off cover.
             off.each_cube do |cube|
+                # print "for off cube=#{cube}\n"
                 # Create the new row: by default blocking.
                 row = "0" * litterals.size
                 blocking << row
@@ -45,6 +41,7 @@ module LogicTools
                         row[i] = "1"
                     end
                 end
+                # print "blocking row=#{row}\n"
             end
             # Returns the resulting matrix
             return blocking
@@ -89,6 +86,7 @@ module LogicTools
         # Step 1: sort the cubes by weight.
         on = order(on)
         # print "#3.1 #{Time.now}\n"
+        # print "on=[#{on.to_s}]\n"
 
         # Create the resulting cover.
         cover = Cover.new(*on.each_variable)
@@ -98,9 +96,10 @@ module LogicTools
             # print "#3.2 #{Time.now} cube=#{cube}\n"
             # Builds the blocking matrix
             blocking = cube.blocking_matrix(off)
+            # print "blocking=[#{blocking}]\n"
             # Select the smallest minimal column cover of the blocking
             # matrix: it will be the expansion
-            col_cover = minimal_column_covers(blocking[1..-1],true)
+            col_cover = minimal_column_covers(blocking[1..-1],true,Cover.deadline)
             # print "col_cover=#{col_cover}\n"
             # This is the new cube
             bits = "-" * cube.width
@@ -118,15 +117,152 @@ module LogicTools
         return cover
     end
 
+
+    ## Represents an empty cube.
+    #
+    #  NOTE: for irredundant usage only.
+    class VoidCube < Cube
+        def initialize(size)
+            # NOTE: This bit string is a phony, since the cube is void.
+            super("-" * size)
+            # The real bits
+            @vbits = " " * size
+        end
+
+        ## Evaluates the corresponding function's value for a binary +input+.
+        #
+        #  +input+ is assumed to be an integer.
+        #  Returns the evaluation result as a boolean.
+        def eval(input)
+            return false
+        end
+
+        ## Converts to a string.
+        def to_s # :nodoc:
+            return @vbits.clone
+        end
+
+        ## Iterates over the bits of the cube.
+        # 
+        #  Returns an enumerator if no block given.
+        def each_bit(&blk)
+            # No block given? Return an enumerator.
+            return to_enum(:each_bit) unless block_given?
+            
+            # Block given? Apply it on each bit.
+            @vbits.each_char(&blk)
+        end
+        alias each each_bit
+
+        ## The bit string defining the cube.
+        #
+        #  Should not be modified directly, hence set as protected.
+        def bits
+            raise "A VoidCube cannot be modified."
+        end
+        protected :bits
+
+        ## Compares with another +cube+.
+        def ==(cube) # :nodoc:
+            @vbits == cube.bits
+        end
+        alias eql? ==
+        def <=>(cube) #:nodoc:
+            @vbits <=> cube.bits
+        end
+
+        ## Gets the hash of a cube
+        def hash
+            @vbits.hash
+        end
+
+        ## duplicates the cube.
+        def clone # :nodoc:
+            VoidCube.new(self.width)
+        end
+        alias dup clone
+
+        ## Gets the value of bit +i+.
+        def [](i)
+            @vbits[i]
+        end
+
+        ## Sets the value of bit +i+ to +b+.
+        def []=(i,b)
+            raise "A VoidCube cannot be modified."
+        end
+    end
+
+
+    ## Generates the cofactor of +cover+ obtained when +var+ is set to +val+
+    #  while keeping the cubes indexes in the cover.
+    #
+    #  NOTE: for irreduntant only since the resulting cover is not in a
+    #  valid state!
+    def cofactor_indexed(cover,var,val)
+        if val != "0" and val != "1" then
+            raise "Invalid value for generating a cofactor: #{val}"
+        end
+        # Get the index of the variable.
+        i = cover.variable_index(var)
+        # Create the new cover.
+        ncover = Cover.new(*@variables)
+        # Set its cubes.
+        cover.each_cube do |cube| 
+            cube = cube.to_s
+            cube[i] = "-" if cube[i] == val
+            if cube[i] == "-" then
+                ncover << Cube.new(cube)
+            else
+                # Add an empty cube for keeping the index.
+                ncover << VoidCube.new(ncover.width)
+            end
+        end
+        return ncover
+    end
+
+    ## Generates the generalized cofactor of +cover+ from +cube+
+    #  while keeping the cubes indexes in the cover.
+    #
+    #  NOTE: for irreduntant only since the resulting cover is not in a
+    #  valid state!
+    def cofactor_cube_indexed(cover,cube)
+        # Create the new cover.
+        ncover = Cover.new(*@variables)
+        # Set its cubes.
+        cover.each_cube do |scube|
+            scube = scube.to_s
+            scube.size.times do |i|
+                if scube[i] == cube[i] then
+                    scube[i] = "-" 
+                elsif (scube[i] != "-" and cube[i] != "-") then
+                    # The cube is to remove from the cover.
+                    scube = nil
+                    break
+                end
+            end
+            if scube then
+                # The cube is to keep in the cofactor.
+                ncover << Cube.new(scube)
+            else
+                # Add an empty cube for keeping the index.
+                ncover << VoidCube.new(ncover.width)
+            end
+        end
+        return ncover
+    end
+
     ## Computes the minimal set cover of a +cover+ along with a +dc+ 
     #  (don't care) cover.
     #
     #  Return the set as a list of cube indexes in the cover.
-    def minimal_set_cover(cover,dc)
+    def minimal_set_covers(cover,dc)
+        # print "minimal_set_cover with cover=#{cover} and dc=#{dc}\n"
         # Look for a binate variable to split on.
         binate = (cover+dc).find_binate
-        # Gets its index
-        i = @variables.index(binate)
+        # binate = cover.find_binate
+        # # Gets its index
+        # i = cover.variable_index(binate)
         unless binate then
             # The cover is actually unate, process it the fast way.
             # Look for "-" only cubes.
@@ -135,34 +271,40 @@ module LogicTools
             dc.each_cube do |cube|
                 return [] unless cube.each.find { |b| b != "-" }
             end
-            # The in +cover+: each "-" only correspond to a cube in the
+            # Then in +cover+: each "-" only cube correspond to a cube in the
             # minimal set cover.
             result = []
             cover.each.with_index do |cube,i|
+                # print "cube=#{cube} i=#{i}\n"
                 result << i unless cube.each.find { |b| b != "-" }
             end
+            # print "result=#{result}\n"
+            return [ result ]
         else
             # Compute the cofactors over the binate variables.
-            cf0 = cover.cofactor(binate,"0")
-            cf1 = cover.cofactor(binate,"1")
-            df0 = dc.cofactor(binate,"0")
-            df1 = dc.cofactor(binate,"1")
+            cf0 = cofactor_indexed(cover,binate,"0")
+            cf1 = cofactor_indexed(cover,binate,"1")
+            df0 = cofactor_indexed(dc,binate,"0")
+            df1 = cofactor_indexed(dc,binate,"1")
             # Process each cofactor and merge their results
-            return minimal_set_cover(cf0,df0) + minimal_set_cover(cf1,df1)
+            return [ minimal_set_covers(cf0,df0), minimal_set_covers(cf1,df1) ].flatten(1)
         end
     end
 
 
-    ## Remove the cubes of the +on+ cover that are redundant for the joint +on+
+    ## Removes the cubes of the +on+ cover that are redundant for the joint +on+
     #  and +dc+ covers.
     #
     #  Returns the new cover.
     def irredundant(on,dc)
         # Step 1: get the relatively essential.
+        # print "on=#{on}\n"
         cubes, es_rel = on.each_cube.partition do |cube| 
-            (on - cube).cofactor_cube(cube).is_tautology?
+            ((on+dc) - cube).cofactor_cube(cube).is_tautology?
         end
         return on.clone if cubes.empty? # There were only relatively essentials.
+        # print "cubes = #{cubes}\n"
+        # print "es_rel = #{es_rel}\n"
         
         # Step 2: get the partially and totally redundants.
         es_rel_dc = Cover.new(*on.each_variable)
@@ -171,34 +313,63 @@ module LogicTools
         red_tot, red_par = cubes.partition do |cube|
             es_rel_dc.cofactor_cube(cube).is_tautology?
         end
+        # red_par is to be used as a cover.
+        red_par_cover = Cover.new(*on.each_variable)
+        red_par.each { |cube| red_par_cover << cube }
+        # print "es_rel_dc = #{es_rel_dc}\n"
+        # print "red_tot = #{red_tot}\n"
+        # print "red_par = #{red_par}\n"
 
         # Step 3: get the minimal sets of partially redundant.
         red_par_sets = red_par.map do |cube|
-            minimal_set_covers(red_par.cofactor_cube(cube),
-                               es_rel_dc.cofactor_cube(cube))
+            # print "for cube=#{cube}\n"
+            minimal_set_covers( cofactor_cube_indexed(red_par_cover,cube),
+                               cofactor_cube_indexed(es_rel_dc,cube) )
         end
+        # red_par_sets.each { |set| set.map! {|i| red_par[i] } }
+        # print "red_par_sets=#{red_par_sets}\n"
 
         # Step 4: find the smallest minimal set using the minimal column covers
         # algorithm.
         # For that purpose build the boolean matrix whose columns are for the
         # partially redundant cubes and the rows are for the sets, "1" 
         # indication the cube is the in set.
-        matrix = red_par_sets.map do |set|
-            row = "0" * red_par.size
-            red_par.each.with_idex do |cube,i| 
-                row[i] = "1" if set.include?(cube)
+        matrix = [] 
+        red_par_sets.each do |sets|
+            sets.each do |set|
+                row = "0" * red_par.size
+                set.each { |i| row[i] = "1" }
+                matrix << row
             end
         end
-        smallest_set_cols = minimal_column_covers(matrix,true)
+        # print "matrix=#{matrix}\n"
+        smallest_set_cols = minimal_column_covers(matrix,true,Cover.deadline)
+        # print "smallest_set_cols=#{smallest_set_cols}\n"
         
         # Creates a new cover with the relative essential cubes and the
         # smallest set of partially redundant cubes.
         cover = Cover.new(*on.each_variable)
         es_rel.each { |cube| cover << cube.clone }
-        smallest_set_cols.each do |set| 
-            set.each { |col| cover << red_par[col].clone }
-        end
+        # smallest_set_cols.each do |set| 
+        #     set.each { |col| cover << red_par[col].clone }
+        # end
+        smallest_set_cols.each { |col| cover << red_par[col].clone }
+        # print "cover=#{cover}\n"
         return cover 
+    end
+
+    ## Remove quickly some cubes of the +on+ cover that are redundant.
+    #
+    #  Returns the new cover.
+    def irredundant_partial(on)
+        result = Cover.new(*on.each_variable)
+        on.each.with_index do |cube,i|
+            # Is cube included somewhere?
+            unless on.each.with_index.find {|cube1,j| j != i and cube1.include?(cube) }
+                # No, keep the cube.
+                result << cube
+            end
+        end
     end
 
 
@@ -265,12 +436,16 @@ module LogicTools
     ## Compute the maximum reduction of a cube from an +on+ cover
     #  which does not intersect with another +dc+ cover.
     def max_reduce(cube,on,dc)
+        # print "max_reduce with cube=#{cube} on=#{on} dc=#{dc}\n"
         # Step 1: create the cover to get the reduction from.
         cover = ((on + dc) - cube).cofactor_cube(cube)
+        # print "cover=#{cover}, taut=#{cover.is_tautology?}\n"
         # Step 2: complement it
-        cover = cover.complement
+        compl = cover.complement
+        # print "compl=#{compl}\n"
         # Step 3: get the smallest cube containing the complemented cover
-        sccc = cover.smallest_containing_cube
+        sccc = compl.smallest_containing_cube
+        # print "sccc=#{sccc}\n"
         # The result is the intersection of this cube with +cube+.
         return cube.intersect(sccc)
     end
@@ -281,14 +456,16 @@ module LogicTools
     def reduce(on,dc)
         # Step 1: sorts on's cubes to achieve a better reduce.
         on = order(on)
+        # print "ordered on=#{on.to_s}\n"
         
         # Step 2: reduce each cube and add it to the resulting cover.
         cover = Cover.new(*on.each_variable)
         on.each_cube.to_a.reverse_each do |cube|
             reduced = max_reduce(cube,on,dc)
-            cover << reduced
+            # print "cube=#{cube} reduced to #{reduced}\n"
+            cover << reduced if reduced # Add the cube if not empty
             on = (on - cube)
-            on << reduced
+            on << reduced if reduced # Add the cube if not empty
         end
         return cover
     end
@@ -297,14 +474,83 @@ module LogicTools
     # Enhances the Cover class with simplifying using the Espresso
     # algorithm.
     class Cover
+
+        ## The deadline for minimal columns covers.
+        @@deadline = Float::INFINITY
+        def Cover.deadline
+            @@deadline
+        end
+
+
+        ## Generates an equivalent but simplified cover from a set
+        #  splitting it for faster solution.
+        #
+        #  Param: +dl+:: the deadline for irredudant in seconds.
+        #
+        def split_simplify(dl)
+            # The on set is a copy of self [F].
+            on = self.simpler_clone
+            on0 = Cover.new(*@variables)
+            (0..(on.size/2-1)).each do |i|
+                on0 << on[i].clone
+            end
+            on1 = Cover.new(*@variables)
+            (((on.size)/2)..(on.size-1)).each do |i|
+                on1 << on[i].clone
+            end
+            print "on0=#{on0}\n"
+            print "on1=#{on1}\n"
+            # Simplify each part independently
+            on0 = on0.simplify(dl)
+            on1 = on1.simplify(dl)
+            # And merge the results for simplifying it globally.
+            on = on0 + on1
+            on.uniq!
+            new_cost = cost(on)
+            if (new_cost >= @first_cost) then
+                print "Giving up with final cost=#{new_cost}\n"
+                # Probably not much possible optimization, end here.
+                result = self.clone
+                result.uniq!
+                return result
+            end
+            # Try to go on but with a timer.
+            begin
+                Timeout::timeout(5*dl) {
+                    on = on.simplify(dl,false)
+                }
+            rescue Timeout::Error
+            end
+            return on
+        end
+
+
+
+
         ## Generates an equivalent but simplified cover.
         #
+        #  Param:
+        #  * +dl+:: the deadline for irredudant in seconds.
+        #  * +split+ :: tell not to split if the cover is too big.    
+        #
         #  Uses the Espresso method.
-        def simplify()
+        def simplify(dl = Float::INFINITY, split = true)
+            # Sets the deadline.
+            @@deadline = dl
+            # Compute the cost before any simplifying.
+            @first_cost = cost(self)
+            print "Cost before simplifying: #{@first_cost} (with #{@cubes.size} cubes)\n"
+            # If the cover is too big, split before solving.
+            if split and (self.size * (self.width ** 2) > 100000) then
+                return split_simplify(dl)
+            end
+
+            # Step 1:
+            # The on set is a copy of self [F].
+            on = self.simpler_clone
+
             # Initialization
             #
-            # Step1: the on set is a copy of self [F].
-            on = self.clone
             # print "on=#{on}\n"
             # print "#1 #{Time.now}\n"
             # And the initial set of don't care: dc [D].
@@ -313,19 +559,29 @@ module LogicTools
             # print "#2 #{Time.now}\n"
             # Step 2: generate the complement cover: off [R = COMPLEMENT(F)].
             off = on.complement
+            # off = irredundant_partial(off) # quickly simlify off.
             # print "off=#{off}\n"
+            print "off with #{off.size} cubes.\n"
+
+            #
+            # Process the cover by pieces if the off and the on are too big.
+ 
+            # If on and off are too big together, split before solving.
+            if split and (on.size*off.size > 100000) then
+                return split_simplify(dl)
+            end
 
             # print "#3 #{Time.now}\n"
             # Step 3: perform the initial expansion [F = EXPAND(F,R)].
             on = expand(on,off)
-            # print "on=#{on}\n"
+            # print "expand:\non=#{on}\n"
+            # Remove the duplicates.
+            on.uniq!
 
             # print "#4 #{Time.now}\n"
             # Step 4: perform the irredundant cover [F = IRREDUNDANT(F,D)].
             on = irredundant(on,dc)
-            # Also remove the duplicates
-            on.uniq!
-            # print "on=#{on}\n"
+            # print "irredundant:\non=#{on}\n"
 
             # print "#5 #{Time.now}\n"
             # Step 5: Detect the essential primes [E = ESSENTIAL(F,D)].
@@ -341,26 +597,37 @@ module LogicTools
             
             # Computes the initial cost
             new_cost = cost(on)
-            # print "After prerpocessing, cost=#{new_cost}\n"
-            begin
-                cost = new_cost
-                # Step 1: perform the reduction of on [F = REDUCE(F,D)]
-                on = LogicTools.reduce(on,dc)
-                # Step 2: perform the expansion of on [F = EXPAND(F,R)]
-                on = expand(on,off)
-                # Step 3: perform the irredundant cover [F = IRREDUNDANT(F,D)]
-                on = irredundant(on,dc)
-                # Also remove the duplicates
-                on.uniq!
-                # Step 4: compute the cost
-                new_cost = cost(on)
-                # print "cost=#{new_cost}\n"
-            end while(new_cost < cost)
+            print "After preprocessing, cost=#{new_cost}\n"
+            if new_cost >0 then
+                begin
+                    # print "#7.1 #{Time.now}\n"
+                    cost = new_cost
+                    # Step 1: perform the reduction of on [F = REDUCE(F,D)]
+                    on = LogicTools.reduce(on,dc)
+                    # print "reduce:\non=#{on.to_s}\n"
+                    # Step 2: perform the expansion of on [F = EXPAND(F,R)]
+                    on = expand(on,off)
+                    # Also remove the duplicates
+                    on.uniq!
+                    # Step 3: perform the irredundant cover [F = IRREDUNDANT(F,D)]
+                    on = irredundant(on,dc)
+                    # on.each_cube do |cube|
+                    #     if ((on+dc)-cube).cofactor_cube(cube).is_tautology? then
+                    #         print "on=[#{on}]\ndc=[#{dc}]\ncube=#{cube}\n"
+                    #         raise "REDUNDANT AFTER IRREDUNDANT"
+                    #     end
+                    # end
+                    # Step 4: compute the cost
+                    new_cost = cost(on)
+                    print "cost=#{new_cost}\n"
+                end while(new_cost < cost)
+            end
 
             # Readd the essential primes to the on result
             on += essentials
 
             # This is the resulting cover.
+            print "Final cost: #{cost(on)} (with #{on.size} cubes)\n"
             return on
         end
     end

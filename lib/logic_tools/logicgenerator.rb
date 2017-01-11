@@ -14,7 +14,9 @@ module LogicTools
         #  boolean space based on a +variables+ set.
         def initialize(*variables)
             @variables = variables.map {|var| var.to_s }
-            @random = Random.new(0) # The default seed is fixed to 0.
+            @random = Random.new(0)   # The default seed is fixed to 0.
+            @max = 2**@variables.size # The max number of cube per random cover.
+            @rate= Rational(1,3)      # The rate of "-" in a cube.
         end
 
         ## Gets the seed.
@@ -25,6 +27,36 @@ module LogicTools
         ## Sets the seed to +value+.
         def seed=(value)
             @random = Random.new(value)
+        end
+
+        ## Gets the maximum number of cubes for a cover.
+        def max
+            return @max
+        end
+
+        ## Sets the maximum number of cubes for a cover.
+        def max=(max)
+            @max = max.to_i
+        end
+
+        ## Gets the rate of "-" in a cube.
+        def rate
+            return @rate
+        end
+
+        ## Sets the rate of "-" in a cube.
+        def rate=(rate)
+            @rate = rate
+        end
+
+        ## Iterates over the variables of the cube
+        #
+        #  Returns an enumberator if no block is given
+        def each_variable(&blk)
+            # No block given? Return an enumerator
+            return to_enum(:each_variable) unless block_given?
+            # Block given? Apply it.
+            @variables.each(&blk)
         end
 
 
@@ -43,9 +75,9 @@ module LogicTools
         def random_3row
             result = "-" * @variables.size
             @variables.size.times do |i| 
-                case @random.rand(0..2)
-                when 0 then result[i] = "0"
-                when 1 then result[i] = "1"
+                value = @random.rand
+                if value > @rate then
+                    result[i] = value <= @rate + (1-@rate)/2 ? "0" : "1"
                 end
             end
             return result
@@ -90,7 +122,7 @@ module LogicTools
         #  NOTE: this iteration can be huge!
         def each_std_conj
             # No block given? Return an enumerator.
-            return to_enum(:each_bit) unless block_given?
+            return to_enum(:each_std_conj) unless block_given?
             
             # Block given? Apply it on each bit.
             # Iterate on each possible truth table.
@@ -144,7 +176,7 @@ module LogicTools
         #  NOTE: this iteration can be huge!
         def each_1cover
             # No block given? Return an enumerator.
-            return to_enum(:each_bit) unless block_given?
+            return to_enum(:each_1cover) unless block_given?
             
             # Block given? Apply it on each bit.
             # Iterate on each possible truth table.
@@ -169,13 +201,17 @@ module LogicTools
             return make_cube(random_3row)
         end
 
-        ## Creates a random cover.
+        ## Creates a random cover. 
         def random_cover
             # Create the new cover.
             cover = Cover.new(*@variables)
             # Fill it with a random number of random cubes.
-            @random.rand(0..(2**(@variables.size))).times do
-                cover << make_cube(random_3row)
+            volume = 0
+            @random.rand(0..(@max-1)).times do
+                cube = make_cube(random_3row)
+                # volume += 2 ** cube.each_bit.count { |b| b == "-" }
+                # break if volume >= 2 ** @variables.size
+                cover << cube
             end
             # Return it.
             return cover

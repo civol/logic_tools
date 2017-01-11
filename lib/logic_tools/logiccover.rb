@@ -30,7 +30,7 @@ module LogicTools
         #  Returns the evaluation result as a boolean.
         def eval(input)
             result = true
-            @bits.each_with_index do |bit,i|
+            @bits.each_char.with_index do |bit,i|
                 if bit == "1" then
                     result &= ((input & (2**i)) != 0)
                 elsif bit == "0" then
@@ -180,6 +180,7 @@ module LogicTools
 
         ## Checks if +self+ intersects with another +cube+.
         def intersects?(cube)
+            return nil unless cube # No cube: intersection is empty.
             # Cubes intersects if they do not include any 0,1 or 1,0 pattern.
             return (not @bits.each_char.with_index.find do |bit,i|
                 bit != "-" and cube[i] != "-" and bit != cube[i]
@@ -190,6 +191,7 @@ module LogicTools
         #
         #  Return a new cube giving the intersection, or nil if there is none.
         def intersect(cube)
+            return nil unless cube # No cube: intersection is empty.
             cbits = "-" * self.width
             # Cubes intersects if they do not include any 0,1 or 1,0 pattern.
             @bits.each_char.with_index do |bit,i|
@@ -205,6 +207,14 @@ module LogicTools
                 end
             end
             return Cube.new(cbits)
+        end
+
+        ## Tells if +cube+ is included.
+        def include?(cube)
+            # Look for a proof of non inclusion.
+            ! @bits.each_char.with_index.find do |bit,i|
+                bit !="-" and cube[i] != bit
+            end
         end
 
         ## Iterates over the minterms included by the cube.
@@ -268,6 +278,16 @@ module LogicTools
             return @cubes.size
         end
 
+        ## Gets a variable by +index+.
+        def variable(index)
+            return @variables[index].clone
+        end
+
+        ## Gets the index of a +variable+.
+        def variable_index(variable)
+            return @variables.index(variable)
+        end
+
         ## Adds a +cube+ to the cover.
         #
         #  Creates a new cube if +cube+ is not an instance of LogicTools::Cube.
@@ -284,6 +304,21 @@ module LogicTools
         end
         alias << add
 
+        ## Adds a +cube+ in front of the cover.
+        #
+        #  Creates a new cube if +cube+ is not an instance of LogicTools::Cube.
+        def unshift(cube)
+            # Check the cube.
+            cube = Cube.new(cube) unless cube.is_a?(Cube)
+            if cube.width != self.width then
+                raise "Invalid cube width for #{cube}, expecting: #{self.width}"
+            end
+            # The cube is valid, add it.
+            @cubes.unshift(cube)
+            # # The cubes of the cover are therefore unsorted.
+            # @sorted = false
+        end
+
         ## Iterates over the cubes of the cover.
         #
         #  Returns an enumerator if no block is given.
@@ -295,13 +330,31 @@ module LogicTools
         end
         alias each each_cube
 
-        ## duplicates the cpver.
+        ## Gets a cube by +index+.
+        def [](index)
+            return @cubes[index]
+        end
+
+        ## Duplicates the cover.
         def clone # :nodoc:
             cover = Cover.new(*@variables)
             @cubes.each { |cube| cover << cube }
             return cover
         end
         alias dup clone
+
+        ## Duplicate the cover while improving a bit the result (for faster
+        #  processing later).
+        def simpler_clone
+            # Clone.
+            cover = self.clone
+            # But remove duplicate cubes.
+            cover.uniq!
+            # And sort the cubes to group together cubes with a shorter
+            # distance.
+            cover.sort! { |c0,c1| c0.distance(c1) - 1 }
+            return cover
+        end
 
         ## Iterates over the variables of the cube
         #
@@ -341,6 +394,11 @@ module LogicTools
             return self
         end
 
+        ## Sorts the cubes of the cover.
+        def sort!(&blk)
+            @cubes.sort!(&blk)
+        end
+
         ## Generates the cofactor obtained when +var+ is set to +val+.
         def cofactor(var,val)
             if val != "0" and val != "1" then
@@ -353,7 +411,6 @@ module LogicTools
             # Set its cubes.
             @cubes.each do |cube| 
                 cube = cube.to_s
-                # cube[i] = val # WRONG
                 cube[i] = "-" if cube[i] == val
                 cover << Cube.new(cube) if cube[i] == "-"
             end
@@ -617,17 +674,21 @@ module LogicTools
 
         ## Creates the smallest cube containing +self+.
         def smallest_containing_cube
+            return nil if @cubes.empty? # Empty cover case.
             # Create a new cube including "-" unless the columns of
-            # all the columns are identical.
+            # all the cubes are identical.
             cbits = "-" * self.width
             self.width.times do |i|
+                # print "cbits=#{cbits}\n"
                 cbits[i] = @cubes.reduce(nil) do |bit,cube|
+                    # print "bit=#{bit} i=#{i} cube=#{cube}\n"
                     if bit == nil then
                         bit = cube[i]
                     elsif bit != cube[i]
                         bit = "-"
-                        next bit
+                        break bit
                     end
+                    bit
                 end
             end
             return Cube.new(cbits)
