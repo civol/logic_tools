@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+######################################################################
+##           Script for launching the simplify_qm.rb program        ##
+######################################################################
+
+begin
+    require 'rubygems'
+    gem 'logic_tools'
+rescue LoadError
+end
+
+load "logic_tools/simplify_es.rb"
