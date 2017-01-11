@@ -7,3 +7,5 @@
 /pkg/
 /spec/reports/
 /tmp/
+/lib/test.rb
+/lib/examples.txt
