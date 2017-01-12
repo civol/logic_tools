@@ -1,8 +1,10 @@
+require 'logger'
 
 require "logic_tools/logictree.rb"
 require "logic_tools/logiccover.rb"
 require "logic_tools/minimal_column_covers.rb"
 require "logic_tools/logicconvert.rb"
+
 
 module LogicTools
 
@@ -81,8 +83,12 @@ module LogicTools
 
     ## Expands cover +on+ as long it does not intersects with +off+.
     #
+    #  NOTE: this step requires to find the minimal column set cover of
+    #  a matrix, this algorthim can be very slow and is therefore terminate
+    #  before an optimal solution is found is a +deadline+ is exceeded.
+    #
     #  Returns the resulting cover.
-    def expand(on,off)
+    def expand(on,off,deadline)
         # Step 1: sort the cubes by weight.
         on = order(on)
         # print "#3.1 #{Time.now}\n"
@@ -99,7 +105,7 @@ module LogicTools
             # print "blocking=[#{blocking}]\n"
             # Select the smallest minimal column cover of the blocking
             # matrix: it will be the expansion
-            col_cover = minimal_column_covers(blocking[1..-1],true,Cover.deadline)
+            col_cover = minimal_column_covers(blocking[1..-1],true,deadline)
             # print "col_cover=#{col_cover}\n"
             # This is the new cube
             bits = "-" * cube.width
@@ -295,8 +301,12 @@ module LogicTools
     ## Removes the cubes of the +on+ cover that are redundant for the joint +on+
     #  and +dc+ covers.
     #
+    #  NOTE: this step requires to find the minimal column set cover of
+    #  a matrix, this algorthim can be very slow and is therefore terminate
+    #  before an optimal solution is found is a +deadline+ is exceeded.
+    #
     #  Returns the new cover.
-    def irredundant(on,dc)
+    def irredundant(on,dc,deadline)
         # Step 1: get the relatively essential.
         # print "on=#{on}\n"
         cubes, es_rel = on.each_cube.partition do |cube| 
@@ -343,7 +353,7 @@ module LogicTools
             end
         end
         # print "matrix=#{matrix}\n"
-        smallest_set_cols = minimal_column_covers(matrix,true,Cover.deadline)
+        smallest_set_cols = minimal_column_covers(matrix,true,deadline)
         # print "smallest_set_cols=#{smallest_set_cols}\n"
         
         # Creates a new cover with the relative essential cubes and the
@@ -475,19 +485,22 @@ module LogicTools
     # algorithm.
     class Cover
 
-        ## The deadline for minimal columns covers.
-        @@deadline = Float::INFINITY
-        def Cover.deadline
-            @@deadline
-        end
+        # ## The deadline for minimal columns covers.
+        # @@deadline = Float::INFINITY
+        # def Cover.deadline
+        #     @@deadline
+        # end
 
 
         ## Generates an equivalent but simplified cover from a set
         #  splitting it for faster solution.
         #
-        #  Param: +dl+:: the deadline for irredudant in seconds.
+        #  Param: +deadline+:: the deadline for each step in second.
         #
-        def split_simplify(dl)
+        #  NOTE: the deadline is acutally applied to the longest step
+        #  only.
+        #
+        def split_simplify(deadline)
             # The on set is a copy of self [F].
             on = self.simpler_clone
             on0 = Cover.new(*@variables)
@@ -501,8 +514,8 @@ module LogicTools
             print "on0=#{on0}\n"
             print "on1=#{on1}\n"
             # Simplify each part independently
-            on0 = on0.simplify(dl)
-            on1 = on1.simplify(dl)
+            on0 = on0.simplify(deadline)
+            on1 = on1.simplify(deadline)
             # And merge the results for simplifying it globally.
             on = on0 + on1
             on.uniq!
@@ -514,13 +527,16 @@ module LogicTools
                 result.uniq!
                 return result
             end
-            # Try to go on but with a timer.
+            # Try to go on but with a timer (set to 7 times the deadline since
+            # there are 7 different steps in total).
             begin
-                Timeout::timeout(5*dl) {
-                    on = on.simplify(dl,false)
+                Timeout::timeout(7*deadline) {
+                    on = on.simplify(deadline,false)
                 }
             rescue Timeout::Error
+                print "Time out for global optimization, ends here..."
             end
+            print "Final cost: #{cost(on)} (with #{on.size} cubes)\n"
             return on
         end
 
@@ -530,19 +546,19 @@ module LogicTools
         ## Generates an equivalent but simplified cover.
         #
         #  Param:
-        #  * +dl+:: the deadline for irredudant in seconds.
+        #  * +deadline+:: the deadline for irredudant in seconds.
         #  * +split+ :: tell not to split if the cover is too big.    
         #
         #  Uses the Espresso method.
-        def simplify(dl = Float::INFINITY, split = true)
-            # Sets the deadline.
-            @@deadline = dl
+        def simplify(deadline = Float::INFINITY, split = true)
+            # # Sets the deadline.
+            # @@deadline = dl
             # Compute the cost before any simplifying.
             @first_cost = cost(self)
             print "Cost before simplifying: #{@first_cost} (with #{@cubes.size} cubes)\n"
             # If the cover is too big, split before solving.
             if split and (self.size * (self.width ** 2) > 100000) then
-                return split_simplify(dl)
+                return split_simplify(deadline)
             end
 
             # Step 1:
@@ -568,19 +584,19 @@ module LogicTools
  
             # If on and off are too big together, split before solving.
             if split and (on.size*off.size > 100000) then
-                return split_simplify(dl)
+                return split_simplify(deadline)
             end
 
             # print "#3 #{Time.now}\n"
             # Step 3: perform the initial expansion [F = EXPAND(F,R)].
-            on = expand(on,off)
+            on = expand(on,off,deadline)
             # print "expand:\non=#{on}\n"
             # Remove the duplicates.
             on.uniq!
 
             # print "#4 #{Time.now}\n"
             # Step 4: perform the irredundant cover [F = IRREDUNDANT(F,D)].
-            on = irredundant(on,dc)
+            on = irredundant(on,dc,deadline)
             # print "irredundant:\non=#{on}\n"
 
             # print "#5 #{Time.now}\n"
