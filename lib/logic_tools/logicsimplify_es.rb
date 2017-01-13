@@ -1,12 +1,13 @@
-require 'logger'
 
 require "logic_tools/logictree.rb"
 require "logic_tools/logiccover.rb"
 require "logic_tools/minimal_column_covers.rb"
 require "logic_tools/logicconvert.rb"
 
+require "logic_tools/traces.rb"
 
 module LogicTools
+
 
 
     # Enhances the Cube class with methods for applying the
@@ -485,6 +486,8 @@ module LogicTools
     # algorithm.
     class Cover
 
+        include LogicTools::Traces
+
         # ## The deadline for minimal columns covers.
         # @@deadline = Float::INFINITY
         # def Cover.deadline
@@ -511,8 +514,8 @@ module LogicTools
             (((on.size)/2)..(on.size-1)).each do |i|
                 on1 << on[i].clone
             end
-            print "on0=#{on0}\n"
-            print "on1=#{on1}\n"
+            debug { "on0=#{on0}\n" }
+            debug { "on1=#{on1}\n" }
             # Simplify each part independently
             on0 = on0.simplify(deadline)
             on1 = on1.simplify(deadline)
@@ -521,7 +524,7 @@ module LogicTools
             on.uniq!
             new_cost = cost(on)
             if (new_cost >= @first_cost) then
-                print "Giving up with final cost=#{new_cost}\n"
+                info { "Giving up with final cost=#{new_cost}" }
                 # Probably not much possible optimization, end here.
                 result = self.clone
                 result.uniq!
@@ -534,9 +537,13 @@ module LogicTools
                     on = on.simplify(deadline,false)
                 }
             rescue Timeout::Error
-                print "Time out for global optimization, ends here..."
+                info do
+                    "Time out for global optimization, ends here..."
+                end
             end
-            print "Final cost: #{cost(on)} (with #{on.size} cubes)\n"
+            info do
+                "Final cost: #{cost(on)} (with #{on.size} cubes)"
+            end
             return on
         end
 
@@ -555,7 +562,10 @@ module LogicTools
             # @@deadline = dl
             # Compute the cost before any simplifying.
             @first_cost = cost(self)
-            print "Cost before simplifying: #{@first_cost} (with #{@cubes.size} cubes)\n"
+            info do
+                "Cost before simplifying: #{@first_cost} " +
+                "(with #{@cubes.size} cubes)"
+            end
             # If the cover is too big, split before solving.
             if split and (self.size * (self.width ** 2) > 100000) then
                 return split_simplify(deadline)
@@ -577,7 +587,7 @@ module LogicTools
             off = on.complement
             # off = irredundant_partial(off) # quickly simlify off.
             # print "off=#{off}\n"
-            print "off with #{off.size} cubes.\n"
+            info { "off with #{off.size} cubes." }
 
             #
             # Process the cover by pieces if the off and the on are too big.
@@ -611,9 +621,10 @@ module LogicTools
 
             # Optimiation loop
             
-            # Computes the initial cost
+            # Computes the cost after preprocessing.
             new_cost = cost(on)
-            print "After preprocessing, cost=#{new_cost}\n"
+            essentials_cost = cost(essentials)
+            info { "After preprocessing, cost=#{new_cost+essentials_cost}" }
             if new_cost >0 then
                 begin
                     # print "#7.1 #{Time.now}\n"
@@ -635,7 +646,7 @@ module LogicTools
                     # end
                     # Step 4: compute the cost
                     new_cost = cost(on)
-                    print "cost=#{new_cost}\n"
+                    info { "cost=#{new_cost+essentials_cost}" }
                 end while(new_cost < cost)
             end
 
@@ -643,7 +654,7 @@ module LogicTools
             on += essentials
 
             # This is the resulting cover.
-            print "Final cost: #{cost(on)} (with #{on.size} cubes)\n"
+            info { "Final cost: #{cost(on)} (with #{on.size} cubes)" }
             return on
         end
     end
