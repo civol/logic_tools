@@ -507,6 +507,7 @@ module LogicTools
         #  only.
         #
         def split_simplify(deadline,volume)
+            info { "Spliting..." }
             # The on set is a copy of self [F].
             on = self.simpler_clone
             on0 = Cover.new(*@variables)
@@ -520,8 +521,10 @@ module LogicTools
             debug { "on0=#{on0}\n" }
             debug { "on1=#{on1}\n" }
             # Simplify each part independently
+            inc_indent
             on0 = on0.simplify(deadline,volume)
             on1 = on1.simplify(deadline,volume)
+            dec_indent
             # And merge the results for simplifying it globally.
             on = on0 + on1
             on.uniq!

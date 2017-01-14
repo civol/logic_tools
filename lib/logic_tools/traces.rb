@@ -3,6 +3,40 @@ require 'logger.rb'
 
 module LogicTools
 
+    ## Small class for indenting
+    class Indenter
+        ## Creates a new indenter.
+        def initialize
+            @indent = 0
+        end
+
+        ## Increase the indent level by +value+.
+        #
+        #  NOTE:
+        #  * the indent level cannot be bellow 0.
+        #  * the value can be negative.
+        def inc(value = 1)
+            @indent += value.to_i
+            @indent = 0 if @indent < 0
+        end
+
+        ## Decreases the indent level by +value+.
+        #
+        #  NOTE: 
+        #  * the indent level cannot be bellow 0.
+        #  * the value can be negative.
+        def dec(value = 1)
+            @indent -= value.to_i
+            @indent = 0 if @indent < 0
+        end
+
+        ## Converts to a string (generates the indent.)
+        def to_s
+            return " " * @indent
+        end
+    end
+
+
     module Traces
 
         # Add traces support to the logic tools.
@@ -11,9 +45,12 @@ module LogicTools
         ## The logger used for displaying the traces.
         TRACES = Logger.new(STDOUT)
 
+        ## The indent for the traces.
+        TRACES_INDENT = Indenter.new
+
         # Format the traces
         TRACES.formatter = proc do |severity, datetime, progname, msg|
-              "[#{severity}] #{datetime}: #{msg}\n"
+              "[#{severity}] #{datetime}: #{TRACES_INDENT.to_s}#{msg}\n"
         end
         TRACES.datetime_format = '%H:%M:%S'
 
@@ -61,6 +98,18 @@ module LogicTools
         def debug(&blk)
             TRACES.debug(&blk)
         end
+
+
+        ## Increases the indent level by +value+.
+        def inc_indent(value = 1)
+            TRACES_INDENT.inc(value)
+        end
+
+        ## Deacreases the indent level by +value+.
+        def dec_indent(value = 1)
+            TRACES_INDENT.dec(value)
+        end
+
 
     end
 
