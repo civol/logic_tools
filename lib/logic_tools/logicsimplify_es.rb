@@ -498,12 +498,15 @@ module LogicTools
         ## Generates an equivalent but simplified cover from a set
         #  splitting it for faster solution.
         #
-        #  Param: +deadline+:: the deadline for each step in second.
+        #  Param: 
+        #  * +deadline+:: the deadline for each step in second.
+        #  * +volume+::   the "volume" above which the cover is split before
+        #                 being solved.
         #
         #  NOTE: the deadline is acutally applied to the longest step
         #  only.
         #
-        def split_simplify(deadline)
+        def split_simplify(deadline,volume)
             # The on set is a copy of self [F].
             on = self.simpler_clone
             on0 = Cover.new(*@variables)
@@ -517,8 +520,8 @@ module LogicTools
             debug { "on0=#{on0}\n" }
             debug { "on1=#{on1}\n" }
             # Simplify each part independently
-            on0 = on0.simplify(deadline)
-            on1 = on1.simplify(deadline)
+            on0 = on0.simplify(deadline,volume)
+            on1 = on1.simplify(deadline,volume)
             # And merge the results for simplifying it globally.
             on = on0 + on1
             on.uniq!
@@ -534,7 +537,7 @@ module LogicTools
             # there are 7 different steps in total).
             begin
                 Timeout::timeout(7*deadline) {
-                    on = on.simplify(deadline,false)
+                    on = on.simplify(deadline,Float::INFINITY)
                 }
             rescue Timeout::Error
                 info do
@@ -554,12 +557,11 @@ module LogicTools
         #
         #  Param:
         #  * +deadline+:: the deadline for irredudant in seconds.
-        #  * +split+ :: tell not to split if the cover is too big.    
+        #  * +volume+::   the "volume" above which the cover is split before
+        #                 being solved.
         #
         #  Uses the Espresso method.
-        def simplify(deadline = Float::INFINITY, split = true)
-            # # Sets the deadline.
-            # @@deadline = dl
+        def simplify(deadline = Float::INFINITY, volume = Float::INFINITY)
             # Compute the cost before any simplifying.
             @first_cost = cost(self)
             info do
@@ -567,8 +569,8 @@ module LogicTools
                 "(with #{@cubes.size} cubes)"
             end
             # If the cover is too big, split before solving.
-            if split and (self.size * (self.width ** 2) > 100000) then
-                return split_simplify(deadline)
+            if (self.size > 2) and (self.size * (self.width ** 2) > volume) then
+                return split_simplify(deadline,volume)
             end
 
             # Step 1:
@@ -593,8 +595,8 @@ module LogicTools
             # Process the cover by pieces if the off and the on are too big.
  
             # If on and off are too big together, split before solving.
-            if split and (on.size*off.size > 100000) then
-                return split_simplify(deadline)
+            if (on.size > 2) and (on.size*off.size > volume) then
+                return split_simplify(deadline,volume)
             end
 
             # print "#3 #{Time.now}\n"

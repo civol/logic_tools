@@ -13,11 +13,14 @@ include LogicTools
 ## Class for testing the implementation of the ESPRESSO algorithm.
 class TestEspresso # < MiniTest::Unit::TestCase
 
-    ## Creates the tester with a +seed+ for random generation and a
-    #  +deadline+.
-    def initialize(seed = 0, deadline = Float::INFINITY)
+    ## Creates the tester with a +seed+ for random generation, a
+    #  +deadline+ for the simplify steps and a +volume+ before splitting
+    #  the cover.
+    def initialize(seed = 0, deadline = Float::INFINITY,
+                               volume = Float::INFINITY)
         @seed = seed
         @deadline = deadline
+        @volume = volume
     end
 
     ## Checks if a +cover+ is a tautology by generating its truth table.
@@ -85,7 +88,7 @@ class TestEspresso # < MiniTest::Unit::TestCase
     ## Tests espresso on a given +cover+.
     def test_espresso(cover)
         print "ESPRESSO on cover=[#{cover.to_s}]...\n"
-        simple = cover.simplify(@deadline)
+        simple = cover.simplify(@deadline,@volume)
         print "result: [#{simple}]\n"
         check0 = (cover + simple.complement).is_tautology?
         # check0 = same_truth_table?(cover,simple)
