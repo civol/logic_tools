@@ -278,6 +278,11 @@ module LogicTools
             return @cubes.size
         end
 
+        ## Tells if the cover is empty.
+        def empty?
+            return @cubes.empty?
+        end
+
         ## Gets a variable by +index+.
         def variable(index)
             return @variables[index].clone

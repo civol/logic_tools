@@ -344,7 +344,7 @@ module LogicTools
 
         ## Converts to a string.
         def to_s # :nodoc:
-            return @value.to_s
+            return @value ? "1" : "0"
         end
     end
 
@@ -379,6 +379,13 @@ module LogicTools
             @variable = Variable.get(name)
             # @sym = @variable.to_s.to_sym
             @sym = nil
+        end
+
+        ## Gets the operator.
+        #
+        #  Default: +nil+ (none).
+        def op
+            :variable
         end
 
         # Node::include? is now enough. 

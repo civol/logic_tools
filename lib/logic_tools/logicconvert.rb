@@ -34,33 +34,64 @@ module LogicTools
             # Create an empty cover.
             cover = Cover.new(*vars)
 
-            # Treat the true and false cases.
-            if tree.op == :true then
-                # True cover
+            # Treat the trival cases.
+            case tree.op 
+            when :true then
+                # Logic true
                 cover << Cube.new("-" * cover.width)
                 return cover
-            elsif tree.op == :false then
-                # False cover
+            when :false then
+                # Logic false
+                return cover
+            when :variable then
+                # Single variable
+                cover << Cube.new("1")
+                return cover
+            when :not then
+                # Single complement of a variable
+                cover << Cube.new("0")
                 return cover
             end
+
+            # Treat the other cases.
 
             # Fill it with the cubes corresponding to each product
             tree.each do |product|
                 product = [ product ] unless product.is_a?(NodeNary)
+                # print "product=#{product}\n"
                 # Generate the bit string of the cube
                 str = "-"*vars.size
                 product.each do |lit|
                     if lit.is_a?(NodeNot) then
-                        # The litteral is a not: put a "0"
-                        str[vars.index(lit.child.variable)] = "0"
+                        index = vars.index(lit.child.variable)
+                        # The litteral is a not
+                        if str[index] == "1" then
+                            # But it was "1" previously, contradictory cube:
+                            # mark it for removal
+                            str = nil
+                            break
+                        else
+                            # No contradiction, put a "0"
+                            str[index] = "0"
+                        end
                     else
-                        # The litteral is a variable: put a "1"
-                        str[vars.index(lit.variable)] = "1"
+                        index = vars.index(lit.variable)
+                        # The litteral is a variable
+                        if str[index] == "0" then
+                            # But it was "0" previously, contradictory cube:
+                            # mark it for removal.
+                            str = nil
+                            break
+                        else
+                            # No contradiction, put a "1"
+                            str[index] = "1"
+                        end
                     end
                 end
-                # Create and add the corresponding cube.
-                cover.add(Cube.new(str))
+                # Create and add the corresponding cube if any.
+                cover.add(Cube.new(str)) if str
             end
+            # print "cover=#{cover}\n"
             # Remove the duplicate cubes if any.
             cover.uniq!
             # Return the resulting cover.
@@ -73,6 +104,15 @@ module LogicTools
         def to_tree()
             # Generate the variable index.
             vars = self.each_variable.to_a
+
+            # Treat the trivial cases.
+            if vars.empty? then
+                return self.empty? ? NodeFalse.new : NodeTrue.new
+            end
+            return NodeFalse.new if self.empty?
+
+            # Treat the other cases.
+
             # Generate the products.
             prods = self.each_cube.map do |cube|
                 # Generate the litterals of the and
@@ -89,8 +129,14 @@ module LogicTools
                 # Create and and with the generated litterals.
                 NodeAnd.new(*litterals)
             end
-            # Generate the sum and return it.
-            return NodeOr.new(*prods)
+            # Is there an empty and?
+            if prods.find { |node| node.empty? } then
+                # Yes, this is a tautology.
+                return NodeTrue.new
+            else
+                # No, generate the sum and return it.
+                return NodeOr.new(*prods)
+            end
         end
     end
 end
