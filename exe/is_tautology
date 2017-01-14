@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+######################################################################
+##          Script for launching the is_tautology.rb program        ##
+######################################################################
+
+begin
+    require 'rubygems'
+    gem 'logic_tools'
+rescue LoadError
+end
+
+load "logic_tools/is_tautology.rb"

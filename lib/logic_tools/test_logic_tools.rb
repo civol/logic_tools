@@ -144,10 +144,11 @@ class TestEspresso # < MiniTest::Unit::TestCase
         # Ensures a rate of "-" large enough to have a high probability of
         # an interesting cover (i.e., which is actually simplifiable).
         # This rate +r+ is obainted as the solution of the followings:
-        # max * 2**(r*dimensions) >= 2**dimensions
-        generator.rate = Math::log2(2**dimensions/max.to_f)/dimensions
+        # max/2 * 2**(r*dimensions) >= 2**dimensions
+        # NOTE: max/2 is the average size of the cover.
+        generator.rate = Math::log2(2**(dimensions+1)/max.to_f)/dimensions
         # Ensures the rate is not too small though.
-        generator.rate = 0.1 unless generator.rate >= 0.1
+        generator.rate = 0.3 unless generator.rate >= 0.3
         print "rate=#{generator.rate}\n"
         # Performs the tests.
         number.times do |i|

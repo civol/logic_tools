@@ -29,8 +29,21 @@ module LogicTools
             # Converts the tree rooted by self to a sum of products
             # (reduced to limit the number of cubes and their sizes).
             tree = self.to_sum_product.reduce
+            # print "tree=#{tree}\n"
+            
             # Create an empty cover.
             cover = Cover.new(*vars)
+
+            # Treat the true and false cases.
+            if tree.op == :true then
+                # True cover
+                cover << Cube.new("-" * cover.width)
+                return cover
+            elsif tree.op == :false then
+                # False cover
+                return cover
+            end
+
             # Fill it with the cubes corresponding to each product
             tree.each do |product|
                 product = [ product ] unless product.is_a?(NodeNary)

@@ -635,11 +635,11 @@ module LogicTools
                     on = LogicTools.reduce(on,dc)
                     # print "reduce:\non=#{on.to_s}\n"
                     # Step 2: perform the expansion of on [F = EXPAND(F,R)]
-                    on = expand(on,off)
+                    on = expand(on,off,deadline)
                     # Also remove the duplicates
                     on.uniq!
                     # Step 3: perform the irredundant cover [F = IRREDUNDANT(F,D)]
-                    on = irredundant(on,dc)
+                    on = irredundant(on,dc,deadline)
                     # on.each_cube do |cube|
                     #     if ((on+dc)-cube).cofactor_cube(cube).is_tautology? then
                     #         print "on=[#{on}]\ndc=[#{dc}]\ncube=#{cube}\n"

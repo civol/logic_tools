@@ -278,10 +278,16 @@ module LogicTools
             self == val
         end
 
-        ## Tells if the +self+ includes +tree+.
+        ## Tells if +self+ includes +tree+.
         def include?(tree)
-            # By default: no.
-            return false
+            # By default: equality comparison.
+            return self == tree
+        end
+
+        ## Tells if +self+ covers +tree+
+        def cover?(tree)
+            # By default: equality comparison.
+            return self == tree
         end
     end
 
@@ -314,14 +320,20 @@ module LogicTools
             return self.eval() == node.eval()
         end
 
-        ## Tells if the +self+ includes +tree+.
-        def include?(tree)
-            return ( tree.is_a?(NodeValue) and self.eval() == tree.eval() )
-        end
+        # Node::include? is now enough.
+        # ## Tells if the +self+ includes +tree+.
+        # def include?(tree)
+        #     return ( tree.is_a?(NodeValue) and self.eval() == tree.eval() )
+        # end
 
         ## Computes the value of the node.
         def eval
             return @value
+        end
+
+        ## Gets the operator.
+        def op
+            return @value.to_s.to_sym
         end
 
         ## Converts to a symbol.
@@ -369,10 +381,11 @@ module LogicTools
             @sym = nil
         end
 
-        ## Tells if the +self+ includes +tree+.
-        def include?(tree)
-            return (tree.is_a?(NodeVar) and self.variable == tree.variable )
-        end
+        # Node::include? is now enough. 
+        # ## Tells if the +self+ includes +tree+.
+        # def include?(tree)
+        #     return ( tree.is_a?(NodeVar) and self.variable == tree.variable )
+        # end
 
         ## Computes the value of the node.
         def eval()
@@ -538,6 +551,27 @@ module LogicTools
             return false
         end
 
+        ## Tells if +self+ covers +tree+.
+        #
+        #  NOTE: * It is assumed that the trees are sorted.
+        #        * There might still be cover even when the result is false.
+        #          For exact cover checking, please use the LogicTools::Cover
+        #          class.
+        def cover?(tree)
+            # Different operators, no probable cover.
+            return false if self.op != tree.op
+            # Check for equality with one child.
+            return true unless tree.each.with_index.find do |child,i|
+                child != @children[i]
+            end
+            # Check each child.
+            @children.each do |child|
+                return true if ( child.op == self.op and child.cover?(tree) )
+            end
+            # Do not include.
+            return false
+        end
+
         # WRONG
         ## Reduce a node: remove its redudancies using absbortion rules
         #  NOTE: NEED to CONSIDER X~X and X+~X CASES
@@ -586,10 +620,23 @@ module LogicTools
                 skipped = false
                 terms.each_with_index do |term1,j|
                     next if (i==j) # Same term
-                    if (term0.include?(term1) and term0 != term1) then
-                        # term0 contains term1 but is different, skip it
+                    # Checks the X~X or X+~X cases.
+                    if ( term0.op == :not and term0.child == term1 ) or
+                       ( term1.op == :not and term1.child == term0 ) then
+                        # Reduceable to 0 or 1
+                        return self.op == :and ? NodeFalse.new : NodeTrue.new
+                    end
+                    # Checks the covering.
+                    next if (term0.op != term1.op) # Different operators
+                    # if (term0.include?(term1) and term0 != term1) then
+                    #     # term0 contains term1 but is different, skip it
+                    #     skipped = true
+                    #     break
+                    # end
+                    if term1.cover?(term0) then
+                        # term1 covers term0 skip term0.
                         skipped = true
-                        break
+                        # break
                     end
                 end
                 nchildren << term0 unless skipped # Term has not been skipped

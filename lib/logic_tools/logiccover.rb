@@ -377,7 +377,7 @@ module LogicTools
 
         ## Converts to a string.
         def to_s # :nodoc:
-            "#{@variables.join},#{@cubes.join(",")}"
+            "[#{@variables.join(",")}],#{@cubes.join(",")}"
         end
 
         # ## Sorts the cubes.
