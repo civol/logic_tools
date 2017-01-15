@@ -158,19 +158,7 @@ module LogicTools
             return @vbits.clone
         end
 
-        # ## Iterates over the bits of the cube.
-        # # 
-        # #  Returns an enumerator if no block given.
-        # def each_bit(&blk)
-        #     # No block given? Return an enumerator.
-        #     return to_enum(:each_bit) unless block_given?
-        #     
-        #     # Block given? Apply it on each bit.
-        #     # @vbits.each_char(&blk)
-        #     @vbits.each_byte(&blk)
-        # end
-        # alias each each_bit
-        ## Iterates over the bits of the cube.
+        ## Iterates over the bits of the cube as bytes.
         # 
         #  Returns an enumerator if no block given.
         def each_byte(&blk)
@@ -180,6 +168,18 @@ module LogicTools
             # Block given? Apply it on each bit.
             @vbits.each_byte(&blk)
         end
+
+        ## Iterates over the bits of the cube as chars.
+        # 
+        #  Returns an enumerator if no block given.
+        def each_char(&blk)
+            # No block given? Return an enumerator.
+            return to_enum(:each_char) unless block_given?
+            
+            # Block given? Apply it on each bit.
+            @vbits.each_char(&blk)
+        end
+        alias each each_char
 
         ## The bit string defining the cube.
         #
@@ -209,23 +209,26 @@ module LogicTools
         end
         alias dup clone
 
-        # ## Gets the value of bit +i+.
-        # def [](i)
-        #     # @vbits[i]
-        #     @vbits.getbyte(i)
-        # end
+        ## Gets the char value of bit +i+.
+        def [](i)
+            @vbits[i]
+        end
 
-        ## Gets the value of bit +i+.
+        ## Gets the byte value of bit +i+.
         def getbyte(i)
             @vbits.getbyte(i)
         end
 
-        # ## Sets the value of bit +i+ to +b+.
-        # def []=(i,b)
-        #     raise "A VoidCube cannot be modified."
-        # end
+        ## Sets the char value of bit +i+ to +b+.
+        #  
+        #  Invalid for a VoidCube.
+        def []=(i,b)
+            raise "A VoidCube cannot be modified."
+        end
 
-        ## Sets the value of bit +i+ to +b+.
+        ## Sets the byte value of bit +i+ to +b+.
+        #  
+        #  Invalid for a VoidCube.
         def setbyte(i,b)
             raise "A VoidCube cannot be modified."
         end

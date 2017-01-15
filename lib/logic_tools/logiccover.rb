@@ -14,27 +14,41 @@ module LogicTools
     #  of the simplifying algorithm.
     #  Hence they are internally represented as strings, since they are
     #  much more energy efficient and usually faster than arrays.
-    #  However, the [] and []= operators and the each_char interator are very 
-    #  slow for strings. Hence getbyte, setbyte and each_byte are used instead.
-    #  Which means that, in the code we use the ASCII values 48 for "0", 49
-    #  for "1" and 45 for "-".
+    #
+    #  Then there are two interfaces:
+    #  * The standard interface is based on strings and substrings only and
+    #    is safe but slow.
+    #
+    #    It includes the '[]' and '[]=' operators for accessing one bit,
+    #    and each_char (or simply each) for iterating over the bits.
+    #
+    #    With this interface, "0" stands for false, "1" for true and "-" for
+    #    don't care.
+    #
+    #  * The fast interface is based on bytes of a string, is fast but unsafe
+    #    (it does not check the bits).
+    #
+    #    It includes getbyte and setbyte for accessing one bit,
+    #    and each_byte for iterating over the bits.
+    #
+    #    With this interface, 48 stands for false, 49 for true and 45 for
+    #    don't care.
+    #
     class Cube
         
         ## Creates a new cube from a bit string +bits+.
-        #  If +clone+ is set to false, bits is not cloned.
         #
-        #  NOTE: since a huge number of cubes are created for the simplifying
-        #        algorithm, the validity check of bits has been deactivated...
-        #        To be used with caution!
-        def initialize(bits, clone = true)
-            if clone then
-                @bits = bits.to_s.clone
+        #  NOTE: If +safe+ is set to false, +bits+ is not checked nor cloned.
+        def initialize(bits, safe = true)
+            if safe then
+                bits = bits.to_s
+                unless bits.match(/^[01-]*$/)
+                    raise "Invalid bit string for describing a cube: "+ bits
+                end
+                @bits = bits.clone
             else
                 @bits = bits.to_s
             end
-            # unless @bits.match(/^[01-]*$/)
-            #     raise "Invalid bit string for describing a cube: "+ @bits
-            # end
         end
 
         ## Gets the width (number of variables of the boolean space).
@@ -81,7 +95,16 @@ module LogicTools
             # Block given? Apply it on each bit.
             @bits.each_byte(&blk)
         end
-        # alias each each_bit
+
+        ## Iterates over the bits of the cube as chars.
+        def each_char(&blk)
+            # No block given? Return an enumerator.
+            return to_enum(:each_char) unless block_given?
+            
+            # Block given? Apply it on each bit.
+            @bits.each_char(&blk)
+        end
+        alias each each_char
 
         ## The bit string defining the cube.
         #
@@ -109,29 +132,26 @@ module LogicTools
         end
         alias dup clone
 
-        # ## Gets the value of bit +i+.
-        # def [](i)
-        #     # @bits[i]
-        #     @bits.getbyte(i)
-        # end
+        ## Gets the char value of bit +i+.
+        def [](i)
+            @bits[i]
+        end
 
         ## Gets the byte value of bit +i+.
         def getbyte(i)
             @bits.getbyte(i)
         end
 
-        # ## Sets the value of bit +i+ to +b+.
-        # #
-        # #  NOTE: the check has been deactivated for performance purpose.
-        # #        Use with caution!
-        # def []=(i,b)
-        #     # raise "Invalid bit value: #{b}" unless ["0","1","-"].include?(b)
-        #     # Update the bit string
-        #     # @bits[i] = b 
-        #     @bits.setbyte(i,b)
-        # end
+        ## Sets the char value of bit +i+ to +b+.
+        def []=(i,b)
+            raise "Invalid bit value: #{b}" unless ["0","1","-"].include?(b)
+            # Update the bit string
+            @bits[i] = b 
+        end
 
         ## Sets the byte value of bit +i+ to +b+.
+        #
+        #  NOTE: does not check b, so please use with caution.
         def setbyte(i,b)
             @bits.setbyte(i,b)
         end
