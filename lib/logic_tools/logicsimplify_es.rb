@@ -574,13 +574,13 @@ module LogicTools
             on = on0 + on1
             on.uniq!
             new_cost = cost(on)
-            if (new_cost >= @first_cost) then
-                info { "Giving up with final cost=#{new_cost}" }
-                # Probably not much possible optimization, end here.
-                result = self.clone
-                result.uniq!
-                return result
-            end
+            # if (new_cost >= @first_cost) then
+            #     info { "Giving up with final cost=#{new_cost}" }
+            #     # Probably not much possible optimization, end here.
+            #     result = self.clone
+            #     result.uniq!
+            #     return result
+            # end
             # Try to go on but with a timer (set to 7 times the deadline since
             # there are 7 different steps in total).
             begin
