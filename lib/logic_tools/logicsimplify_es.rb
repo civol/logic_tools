@@ -41,7 +41,8 @@ module LogicTools
                 # Fill it
                 litterals.each.with_index do |col,i|
                     # if cube[col] != "-" and @bits[col] != cube[col] then
-                    if cube[col] != 45 and @bits.getbyte(col) != cube[col] then
+                    if cube.getbyte(col) != 45 and
+                       @bits.getbyte(col) != cube.getbyte(col) then
                         # Non blocking, put a "1".
                         # row[i] = "1"
                         row.setbyte(i,49)
@@ -66,12 +67,14 @@ module LogicTools
         col_weights = [ 0 ] * cover.width
         cover.width.times do |i|
             # cover.each_cube { |cube| col_weights[i] += 1 if cube[i] == "1" }
-            cover.each_cube { |cube| col_weights[i] += 1 if cube[i] == 49 }
+            cover.each_cube do |cube| 
+                col_weights[i] += 1 if cube.getbyte(i) == 49
+            end
         end
         # Then the weight of a cube is the scalar product of its
         # bits with the column weights.
         cover.each_cube.with_index do |cube,j|
-            cube.each.with_index do |bit,i|
+            cube.each_byte.with_index do |bit,i|
                 # weights[j] += col_weights[i] if bit == "1"
                 weights[j] += col_weights[i] if bit == 49
             end
@@ -120,7 +123,7 @@ module LogicTools
                 # column of the litteral
                 col = blocking[0][col] 
                 # bits[col] = cube[col]
-                bits.setbyte(col,cube[col])
+                bits.setbyte(col,cube.getbyte(col))
             end
             # print "expand result=#{bits}\n"
             # Create and add the new expanded cube.
@@ -155,18 +158,28 @@ module LogicTools
             return @vbits.clone
         end
 
+        # ## Iterates over the bits of the cube.
+        # # 
+        # #  Returns an enumerator if no block given.
+        # def each_bit(&blk)
+        #     # No block given? Return an enumerator.
+        #     return to_enum(:each_bit) unless block_given?
+        #     
+        #     # Block given? Apply it on each bit.
+        #     # @vbits.each_char(&blk)
+        #     @vbits.each_byte(&blk)
+        # end
+        # alias each each_bit
         ## Iterates over the bits of the cube.
         # 
         #  Returns an enumerator if no block given.
-        def each_bit(&blk)
+        def each_byte(&blk)
             # No block given? Return an enumerator.
-            return to_enum(:each_bit) unless block_given?
+            return to_enum(:each_byte) unless block_given?
             
             # Block given? Apply it on each bit.
-            # @vbits.each_char(&blk)
             @vbits.each_byte(&blk)
         end
-        alias each each_bit
 
         ## The bit string defining the cube.
         #
@@ -196,14 +209,24 @@ module LogicTools
         end
         alias dup clone
 
+        # ## Gets the value of bit +i+.
+        # def [](i)
+        #     # @vbits[i]
+        #     @vbits.getbyte(i)
+        # end
+
         ## Gets the value of bit +i+.
-        def [](i)
-            # @vbits[i]
+        def getbyte(i)
             @vbits.getbyte(i)
         end
 
+        # ## Sets the value of bit +i+ to +b+.
+        # def []=(i,b)
+        #     raise "A VoidCube cannot be modified."
+        # end
+
         ## Sets the value of bit +i+ to +b+.
-        def []=(i,b)
+        def setbyte(i,b)
             raise "A VoidCube cannot be modified."
         end
     end
@@ -251,11 +274,12 @@ module LogicTools
         cover.each_cube do |scube|
             scube = scube.to_s
             scube.size.times do |i|
-                if scube.getbyte(i) == cube[i] then
+                # if scube.getbyte(i) == cube[i] then
+                if scube.getbyte(i) == cube.getbyte(i) then
                     # scube[i] = "-" 
                     scube.setbyte(i,45)
                 # elsif (scube[i] != "-" and cube[i] != "-") then
-                elsif (scube.getbyte(i) != 45 and cube[i] != 45) then
+                elsif (scube.getbyte(i) != 45 and cube.getbyte(i) != 45) then
                     # The cube is to remove from the cover.
                     scube = nil
                     break
@@ -290,7 +314,7 @@ module LogicTools
             # be any minimal set cover.
             dc.each_cube do |cube|
                 # return [] unless cube.each.find { |b| b != "-" }
-                return [] unless cube.each.find { |b| b != 45 }
+                return [] unless cube.each_byte.find { |b| b != 45 }
             end
             # Then in +cover+: each "-" only cube correspond to a cube in the
             # minimal set cover.
@@ -298,7 +322,7 @@ module LogicTools
             cover.each.with_index do |cube,i|
                 # print "cube=#{cube} i=#{i}\n"
                 # result << i unless cube.each.find { |b| b != "-" }
-                result << i unless cube.each.find { |b| b != 45 }
+                result << i unless cube.each_byte.find { |b| b != 45 }
             end
             # print "result=#{result}\n"
             return [ result ]
@@ -461,7 +485,7 @@ module LogicTools
     def cost(cover)
         return cover.each_cube.reduce(0) do |sum, cube|
             # sum + cube.each_bit.count { |b| b != "-" }
-            sum + cube.each_bit.count { |b| b != 45 }
+            sum + cube.each_byte.count { |b| b != 45 }
         end
     end
 
