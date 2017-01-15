@@ -197,8 +197,9 @@ module LogicTools
         essentials = []
         matrix.each do |row|
             col = nil
-            row.each_char.with_index do |c,i|
-                if c == "1" then
+            row.each_byte.with_index do |c,i|
+                # if c == "1" then
+                if c == 49 then
                     if col then
                         # The row has several "1", no essential column there.
                         col = nil
@@ -216,7 +217,8 @@ module LogicTools
         keep = [ true ] * matrix.size
         essentials.each do |col|
             matrix.each.with_index do |row,i|
-                keep[i] = false if row[col] == "1"
+                # keep[i] = false if row[col] == "1"
+                keep[i] = false if row.getbyte(col) == 49
             end
         end
         # print "keep = #{keep}\n"
@@ -244,8 +246,9 @@ module LogicTools
                         false
                     else
                         # The row is dominating if in includes another row.
-                        res = row0.each_char.with_index.find do |c,j|
-                            row1[j] == "1" and c == "0"
+                        res = row0.each_byte.with_index.find do |c,j|
+                            # row1[j] == "1" and c == "0"
+                            row1.getbyte(j) == 49 and c == 48
                         end
                         # Not dominating if res
                         !res
@@ -285,8 +288,9 @@ module LogicTools
         reduced.each do |row|
             term = []
             # Get the columns covering the row.
-            row.each_char.with_index do |bit,i|
-                term << i if bit == "1"
+            row.each_byte.with_index do |bit,i|
+                # term << i if bit == "1"
+                term << i if bit == 49
             end
             product << term unless term.empty?
         end

@@ -9,14 +9,32 @@ module LogicTools
 
     ## 
     #  Represents a boolean cube.
+    #  
+    #  NOTE: cubes are crutial for the performance of the implementation
+    #  of the simplifying algorithm.
+    #  Hence they are internally represented as strings, since they are
+    #  much more energy efficient and usually faster than arrays.
+    #  However, the [] and []= operators and the each_char interator are very 
+    #  slow for strings. Hence getbyte, setbyte and each_byte are used instead.
+    #  Which means that, in the code we use the ASCII values 48 for "0", 49
+    #  for "1" and 45 for "-".
     class Cube
         
         ## Creates a new cube from a bit string +bits+.
-        def initialize(bits)
-            @bits = bits.to_s
-            unless @bits.match(/^[01-]*$/)
-                raise "Invalid bit string for describing a cube: "+ @bits
+        #  If +clone+ is set to false, bits is not cloned.
+        #
+        #  NOTE: since a huge number of cubes are created for the simplifying
+        #        algorithm, the validity check of bits has been deactivated...
+        #        To be used with caution!
+        def initialize(bits, clone = true)
+            if clone then
+                @bits = bits.to_s.clone
+            else
+                @bits = bits.to_s
             end
+            # unless @bits.match(/^[01-]*$/)
+            #     raise "Invalid bit string for describing a cube: "+ @bits
+            # end
         end
 
         ## Gets the width (number of variables of the boolean space).
@@ -30,10 +48,10 @@ module LogicTools
         #  Returns the evaluation result as a boolean.
         def eval(input)
             result = true
-            @bits.each_char.with_index do |bit,i|
-                if bit == "1" then
+            @bits.each_byte.with_index do |bit,i|
+                if bit == 49 then
                     result &= ((input & (2**i)) != 0)
-                elsif bit == "0" then
+                elsif bit == 48 then
                     result &= ((input & (2**i)) == 0)
                 end
             end
@@ -42,8 +60,9 @@ module LogicTools
 
         ## Computes the distance with another +cube+.
         def distance(cube)
-            return @bits.each_char.with_index.count do |b,i|
-                b != "-" and cube[i] != "-" and b != cube[i]
+            return @bits.each_byte.with_index.count do |b,i|
+                # b != "-" and cube[i] != "-" and b != cube[i]
+                b != 45 and cube[i] != 45 and b != cube[i]
             end
         end
 
@@ -60,7 +79,7 @@ module LogicTools
             return to_enum(:each_bit) unless block_given?
             
             # Block given? Apply it on each bit.
-            @bits.each_char(&blk)
+            @bits.each_byte(&blk)
         end
         alias each each_bit
 
@@ -86,20 +105,25 @@ module LogicTools
 
         ## duplicates the cube.
         def clone # :nodoc:
-            Cube.new(self)
+            Cube.new(@bits)
         end
         alias dup clone
 
         ## Gets the value of bit +i+.
         def [](i)
-            @bits[i]
+            # @bits[i]
+            @bits.getbyte(i)
         end
 
         ## Sets the value of bit +i+ to +b+.
+        #
+        #  NOTE: the check has been deactivated for performance purpose.
+        #        Use with caution!
         def []=(i,b)
-            raise "Invalid bit value: #{b}" unless ["0","1","-"].include?(b)
+            # raise "Invalid bit value: #{b}" unless ["0","1","-"].include?(b)
             # Update the bit string
-            @bits[i] = b 
+            # @bits[i] = b 
+            @bits.setbyte(i,b)
         end
 
         ## Computes the consensus with another +cube+.
@@ -114,14 +138,17 @@ module LogicTools
             # built by setting to "-" the opposite variable, and
             # keeping all the other.
             cbits = "-" * cube.width
-            @bits.each_char.with_index do |bit,i|
-                if bit != "-" then
-                    cbits[i] = bit if (cube[i] == "-" or cube[i] == bit)
+            @bits.each_byte.with_index do |bit,i|
+                # if bit != "-" then
+                if bit != 45 then
+                    # cbits[i] = bit if (cube[i] == "-" or cube[i] == bit)
+                    cbits.setbyte(i,bit) if (cube[i] == 45 or cube[i] == bit)
                 else
-                    cbits[i] = cube[i]
+                    # cbits[i] = cube[i]
+                    cbits.setbyte(i,cube[i])
                 end
             end
-            return Cube.new(cbits)
+            return Cube.new(cbits,false) # No need to clone cbits.
         end
 
         ## Computes the sharp operation with another +cube+.
@@ -133,11 +160,13 @@ module LogicTools
             result = []
             # There is one such cube per litteral which is in
             # self but not in cube.
-            @bits.each_char.with_index do |bit,i|
-                next if (cube[i] == "-" or cube[i] == bit)
+            @bits.each_byte.with_index do |bit,i|
+                # next if (cube[i] == "-" or cube[i] == bit)
+                next if (cube[i] == 45 or cube[i] == bit)
                 cbits = @bits.clone
-                cbits[i] = (cube[i] == "0") ? "1" : "0"
-                result << Cube.new(cbits)
+                # cbits[i] = (cube[i] == "0") ? "1" : "0"
+                cbits.setbyte(i, (cube[i] == 48) ? 49 : 48)
+                result << Cube.new(cbits,false) # No need to clone cbits
             end
             # Remove duplicate cubes before ending.
             result.uniq!
@@ -147,7 +176,7 @@ module LogicTools
         ## Checks if +self+ can be merged with +cube+
         def can_merge?(cube)
             found = false # 0 to 1 or 1 to 0 pattern found
-            @bits.each_char.with_index do |bit,i|
+            @bits.each_byte.with_index do |bit,i|
                 if (bit != cube[i]) then
                     # Found one different bit
                     return false if found # But there were already one
@@ -165,25 +194,27 @@ module LogicTools
             # Create the bit string of the result.
             cbits = "-" * self.width
             found = false # 0 to 1 or 1 to 0 pattern found
-            @bits.each_char.with_index do |bit,i|
+            @bits.each_byte.with_index do |bit,i|
                 if (bit != cube[i]) then
                     # Found one different bit
                     return nil if found # But there were already one
                     found = true
                 else
-                    cbits[i] = bit
+                    # cbits[i] = bit
+                    cbits.setbyte(i,bit)
                 end
             end
             # Can be merged
-            return Cube.new(cbits)
+            return Cube.new(cbits,false) # No need to clone cbits.
         end
 
         ## Checks if +self+ intersects with another +cube+.
         def intersects?(cube)
             return nil unless cube # No cube: intersection is empty.
             # Cubes intersects if they do not include any 0,1 or 1,0 pattern.
-            return (not @bits.each_char.with_index.find do |bit,i|
-                bit != "-" and cube[i] != "-" and bit != cube[i]
+            return (not @bits.each_byte.with_index.find do |bit,i|
+                # bit != "-" and cube[i] != "-" and bit != cube[i]
+                bit != 45 and cube[i] != 45 and bit != cube[i]
             end)
         end
 
@@ -194,26 +225,32 @@ module LogicTools
             return nil unless cube # No cube: intersection is empty.
             cbits = "-" * self.width
             # Cubes intersects if they do not include any 0,1 or 1,0 pattern.
-            @bits.each_char.with_index do |bit,i|
-                if bit == "-" then
-                    cbits[i] = cube[i]
-                elsif cube[i] == "-" then
-                    cbits[i] = bit
+            @bits.each_byte.with_index do |bit,i|
+                # if bit == "-" then
+                if bit == 45 then
+                    # cbits[i] = cube[i]
+                    cbits.setbyte(i,cube[i])
+                # elsif cube[i] == "-" then
+                elsif cube[i] == 45 then
+                    # cbits[i] = bit
+                    cbits.setbyte(i,bit)
                 elsif bit != cube[i] then
                     # No intersection.
                     return nil
                 else
-                    cbits[i] = bit
+                    # cbits[i] = bit
+                    cbits.setbyte(i,bit)
                 end
             end
-            return Cube.new(cbits)
+            return Cube.new(cbits,false) # No need to duplicate cbits.
         end
 
         ## Tells if +cube+ is included.
         def include?(cube)
             # Look for a proof of non inclusion.
-            ! @bits.each_char.with_index.find do |bit,i|
-                bit !="-" and cube[i] != bit
+            ! @bits.each_byte.with_index.find do |bit,i|
+                # bit != "-" and cube[i] != bit
+                bit != 45 and cube[i] != bit
             end
         end
 
@@ -228,7 +265,8 @@ module LogicTools
 
             # Block given? Apply it.
             # Locate the "-" in the bit: they are the source of alternatives
-            free_cols = @bits.size.times.find_all {|i| @bits[i] == "-" }
+            # free_cols = @bits.size.times.find_all {|i| @bits[i] == "-" }
+            free_cols = @bits.size.times.find_all {|i| @bits.getbyte(i) == 45 }
             # Generate each possible min term
             if (free_cols.empty?) then
                 # Only one minterm
@@ -241,10 +279,12 @@ module LogicTools
                     free_cols.each.with_index do |col,i|
                         if  (sel & (2 ** i) == 0) then
                             # The column is to 0
-                            minterm[col] = "0"
+                            # minterm[col] = "0"
+                            minterm.setbyte(col,48)
                         else
                             # The column is to 1
-                            minterm[col] = "1"
+                            # minterm[col] = "1"
+                            minterm.setbyte(col,49)
                         end
                     end
                     # The minterm is ready, use it.
@@ -406,7 +446,8 @@ module LogicTools
 
         ## Generates the cofactor obtained when +var+ is set to +val+.
         def cofactor(var,val)
-            if val != "0" and val != "1" then
+            # if val != "0" and val != "1" then
+            if val != 48 and val != 49 then
                 raise "Invalid value for generating a cofactor: #{val}"
             end
             # Get the index of the variable.
@@ -416,8 +457,10 @@ module LogicTools
             # Set its cubes.
             @cubes.each do |cube| 
                 cube = cube.to_s
-                cube[i] = "-" if cube[i] == val
-                cover << Cube.new(cube) if cube[i] == "-"
+                # cube[i] = "-" if cube[i] == val
+                cube.setbyte(i,45) if cube.getbyte(i) == val
+                # cover << Cube.new(cube) if cube[i] == "-"
+                cover << Cube.new(cube,false) if cube.getbyte(i) == 45
             end
             cover.uniq!
             return cover
@@ -431,9 +474,11 @@ module LogicTools
             @cubes.each do |scube|
                 scube = scube.to_s
                 scube.size.times do |i|
-                    if scube[i] == cube[i] then
-                        scube[i] = "-" 
-                    elsif (scube[i] != "-" and cube[i] != "-") then
+                    if scube.getbyte(i) == cube[i] then
+                        # scube[i] = "-" 
+                        scube.setbyte(i,45)
+                    # elsif (scube[i] != "-" and cube[i] != "-") then
+                    elsif (scube.getbyte(i) != 45 and cube[i] != 45) then
                         # The cube is to remove from the cover.
                         scube = nil
                         break
@@ -441,7 +486,7 @@ module LogicTools
                 end
                 if scube then
                     # The cube is to keep in the cofactor.
-                    cover << Cube.new(scube)
+                    cover << Cube.new(scube,false)
                 end
             end
             cover.uniq!
@@ -466,19 +511,25 @@ module LogicTools
             merge = "-" * self.width
             @cubes.each do |cube|
                 cube.each.with_index do |bit,i|
-                    if bit == "1" then
-                        if merge[i] == "0" then
+                    # if bit == "1" then
+                    if bit == 49 then
+                        # if merge[i] == "0" then
+                        if merge.getbyte(i) == 48 then
                             # A 1 over 0 is found, a binate variable is found.
                             return @variables[i]
                         else
-                            merge[i] = "1"
+                            # merge[i] = "1"
+                            merge.setbyte(i,49)
                         end
-                    elsif bit == "0" then
-                        if merge[i] == "1" then
+                    # elsif bit == "0" then
+                    elsif bit == 48 then
+                        # if merge[i] == "1" then
+                        if merge.getbyte(i) == 49 then
                             # A 0 over 1 is found, a binate variable is found.
                             return @variables[i]
                         else
-                            merge[i] = "0"
+                            # merge[i] = "0"
+                            merge.setbyte(i,48)
                         end
                     end
                 end
@@ -543,7 +594,7 @@ module LogicTools
             # the result is the tautology.
             if @cubes.empty? then
                 result = Cover.new(*@variables)
-                result << Cube.new("-"*self.width)
+                result << Cube.new("-"*self.width,false)
                 return result
             end
             # Otherwise...
@@ -560,7 +611,8 @@ module LogicTools
                     line = " " * self.width
                     matrix << line
                     cube.each.with_index do |bit,i|
-                        line[i] = (bit == "0" or bit == "1") ? "1" : "0"
+                        # line[i] = (bit == "0" or bit == "1") ? "1" : "0"
+                        line.setbyte(i, (bit == 48 or bit == 49) ? 49 : 48 )
                     end
                 end
                 # Step 2: finds all the minimal column covers of the matrix
@@ -583,19 +635,24 @@ module LogicTools
                     # from the column cover +min+.
                     cbits = "-" * self.width
                     min.each do |col|
-                        if @cubes.find {|cube| cube[col] == "1" } then
-                            cbits[col] = "0"
+                        # if @cubes.find {|cube| cube[col] == "1" } then
+                        if @cubes.find {|cube| cube[col] == 49 } then
+                            # cbits[col] = "0"
+                            cbits.setbyte(col,48)
                         else
-                            cbits[col] = "1"
+                            # cbits[col] = "1"
+                            cbits.setbyte(col,49)
                         end
                     end
-                    result << Cube.new(cbits)
+                    result << Cube.new(cbits,false)
                 end
                 return result
             else
                 # Compute the cofactors over the binate variables.
-                cf0 = self.cofactor(binate,"0")
-                cf1 = self.cofactor(binate,"1")
+                # cf0 = self.cofactor(binate,"0")
+                cf0 = self.cofactor(binate,48)
+                # cf1 = self.cofactor(binate,"1")
+                cf1 = self.cofactor(binate,49)
                 # Complement them.
                 cf0 = cf0.complement
                 cf1 = cf1.complement
@@ -605,16 +662,20 @@ module LogicTools
                 # Get the index of the binate variable.
                 i = @variables.index(binate)
                 cf0.each_cube do |cube| # cf0 and (not binate)
-                    if cube[i] != "1" then
+                    # if cube[i] != "1" then
+                    if cube[i] != 49 then
                         # Cube's binate is not "1" so the cube can be kept
-                        cube[i] = "0"
+                        # cube[i] = "0"
+                        cube[i] = 48
                         result << cube
                     end
                 end
                 cf1.each_cube do |cube| # cf1 and binate
-                    if cube[i] != "0" then
+                    # if cube[i] != "0" then
+                    if cube[i] != 48 then
                         # Cube's binate is not "0" so the cube can be kept
-                        cube[i] = "1"
+                        # cube[i] = "1"
+                        cube[i] = 49
                         result << cube
                     end
                 end
@@ -633,7 +694,8 @@ module LogicTools
                 # The cover is actually unate, check it the fast way.
                 # Does it contain a "-" only cube? If yes, this is a tautology.
                 @cubes.each do |cube|
-                    return true unless cube.each_bit.find { |bit| bit != "-" }
+                    # return true unless cube.each_bit.find { |bit| bit != "-" }
+                    return true unless cube.each_bit.find { |bit| bit != 45 }
                 end
                 # No "-" only cube, this is not a tautology
                 return false
@@ -643,13 +705,15 @@ module LogicTools
                 # The cover is actually unate, check it the fast way.
                 # Does it contain a "-" only cube? If yes, this is a tautology.
                 # @cubes.each do |cube|
-                #     return true unless cube.each_bit.find { |bit| bit != "-" }
+                #     # return true unless cube.each_bit.find { |bit| bit != "-" }
+                #     return true unless cube.each_bit.find { |bit| bit != 45 }
                 # end
                 # # Is there a "1" only or "0" only column? If yes, this is not
                 # # a tautology.
                 # self.width.times do |col|
                 #     fbit = @cubes[0][col]
-                #     next if fbit == "-"
+                #     # next if fbit == "-"
+                #     next if fbit == 45
                 #     next if (1..(@cubes.size-1)).each.find do |bit|
                 #         bit != fbit
                 #     end
@@ -659,7 +723,8 @@ module LogicTools
                 # # if < 2**width, not a tautology.
                 # num_minterms = 0
                 # @cubes.each do |cube|
-                #     num_minterms += 2 ** cube.each_bit.count {|b| b == "-"}
+                #     # num_minterms += 2 ** cube.each_bit.count {|b| b == "-"}
+                #     num_minterms += 2 ** cube.each_bit.count {|b| b == 45}
                 # end
                 # return false if num_minterms < 2**self.width
                 # # Last check: the truth table.
@@ -668,8 +733,10 @@ module LogicTools
                 # end
             else
                 # Compute the cofactors over the binate variables.
-                cf0 = self.cofactor(binate,"0")
-                cf1 = self.cofactor(binate,"1")
+                # cf0 = self.cofactor(binate,"0")
+                cf0 = self.cofactor(binate,48)
+                # cf1 = self.cofactor(binate,"1")
+                cf1 = self.cofactor(binate,49)
                 # Check both: if there are tautologies, self is also a
                 # tautology
                 return ( cf0.is_tautology? and cf1.is_tautology? )
@@ -685,18 +752,20 @@ module LogicTools
             cbits = "-" * self.width
             self.width.times do |i|
                 # print "cbits=#{cbits}\n"
-                cbits[i] = @cubes.reduce(nil) do |bit,cube|
+                # cbits[i] = @cubes.reduce(nil) do |bit,cube|
+                cbits.setbyte(i, @cubes.reduce(nil) do |bit,cube|
                     # print "bit=#{bit} i=#{i} cube=#{cube}\n"
                     if bit == nil then
                         bit = cube[i]
                     elsif bit != cube[i]
-                        bit = "-"
+                        # bit = "-"
+                        bit = 45
                         break bit
                     end
                     bit
-                end
+                end)
             end
-            return Cube.new(cbits)
+            return Cube.new(cbits,false) # No need to clone cbits
         end
 
 

@@ -28,7 +28,8 @@ module LogicTools
             # Create the result matrix.
             blocking = []
             # Get the column number of the litterals of self.
-            litterals = @bits.size.times.find_all {|i| @bits[i] != "-" } 
+            # litterals = @bits.size.times.find_all {|i| @bits[i] != "-" } 
+            litterals = @bits.size.times.find_all {|i| @bits.getbyte(i) != 45 } 
             # This is the first row of the blocking matrix.
             blocking << litterals
             # Build the other rows: one per cube of the off cover.
@@ -39,9 +40,11 @@ module LogicTools
                 blocking << row
                 # Fill it
                 litterals.each.with_index do |col,i|
-                    if cube[col] != "-" and @bits[col] != cube[col] then
+                    # if cube[col] != "-" and @bits[col] != cube[col] then
+                    if cube[col] != 45 and @bits.getbyte(col) != cube[col] then
                         # Non blocking, put a "1".
-                        row[i] = "1"
+                        # row[i] = "1"
+                        row.setbyte(i,49)
                     end
                 end
                 # print "blocking row=#{row}\n"
@@ -62,13 +65,15 @@ module LogicTools
         # (number of ones)
         col_weights = [ 0 ] * cover.width
         cover.width.times do |i|
-            cover.each_cube { |cube| col_weights[i] += 1 if cube[i] == "1" }
+            # cover.each_cube { |cube| col_weights[i] += 1 if cube[i] == "1" }
+            cover.each_cube { |cube| col_weights[i] += 1 if cube[i] == 49 }
         end
         # Then the weight of a cube is the scalar product of its
         # bits with the column weights.
         cover.each_cube.with_index do |cube,j|
             cube.each.with_index do |bit,i|
-                weights[j] += col_weights[i] if bit == "1"
+                # weights[j] += col_weights[i] if bit == "1"
+                weights[j] += col_weights[i] if bit == 49
             end
         end
 
@@ -114,11 +119,12 @@ module LogicTools
                 # The first row of the blocking matrix give the actual
                 # column of the litteral
                 col = blocking[0][col] 
-                bits[col] = cube[col]
+                # bits[col] = cube[col]
+                bits.setbyte(col,cube[col])
             end
             # print "expand result=#{bits}\n"
             # Create and add the new expanded cube.
-            cover << Cube.new(bits)
+            cover << Cube.new(bits,false) # No need to clone bits.
         end
 
         return cover
@@ -131,7 +137,7 @@ module LogicTools
     class VoidCube < Cube
         def initialize(size)
             # NOTE: This bit string is a phony, since the cube is void.
-            super("-" * size)
+            super("-" * size,false)
             # The real bits
             @vbits = " " * size
         end
@@ -157,7 +163,8 @@ module LogicTools
             return to_enum(:each_bit) unless block_given?
             
             # Block given? Apply it on each bit.
-            @vbits.each_char(&blk)
+            # @vbits.each_char(&blk)
+            @vbits.each_byte(&blk)
         end
         alias each each_bit
 
@@ -191,7 +198,8 @@ module LogicTools
 
         ## Gets the value of bit +i+.
         def [](i)
-            @vbits[i]
+            # @vbits[i]
+            @vbits.getbyte(i)
         end
 
         ## Sets the value of bit +i+ to +b+.
@@ -207,7 +215,8 @@ module LogicTools
     #  NOTE: for irreduntant only since the resulting cover is not in a
     #  valid state!
     def cofactor_indexed(cover,var,val)
-        if val != "0" and val != "1" then
+        # if val != "0" and val != "1" then
+        if val != 48 and val != 49 then
             raise "Invalid value for generating a cofactor: #{val}"
         end
         # Get the index of the variable.
@@ -217,9 +226,11 @@ module LogicTools
         # Set its cubes.
         cover.each_cube do |cube| 
             cube = cube.to_s
-            cube[i] = "-" if cube[i] == val
-            if cube[i] == "-" then
-                ncover << Cube.new(cube)
+            # cube[i] = "-" if cube[i] == val
+            cube.setbyte(i,45) if cube.getbyte(i) == val
+            # if cube[i] == "-" then
+            if cube.getbyte(i) == 45 then
+                ncover << Cube.new(cube,false) # No need to clone cube.
             else
                 # Add an empty cube for keeping the index.
                 ncover << VoidCube.new(ncover.width)
@@ -240,9 +251,11 @@ module LogicTools
         cover.each_cube do |scube|
             scube = scube.to_s
             scube.size.times do |i|
-                if scube[i] == cube[i] then
-                    scube[i] = "-" 
-                elsif (scube[i] != "-" and cube[i] != "-") then
+                if scube.getbyte(i) == cube[i] then
+                    # scube[i] = "-" 
+                    scube.setbyte(i,45)
+                # elsif (scube[i] != "-" and cube[i] != "-") then
+                elsif (scube.getbyte(i) != 45 and cube[i] != 45) then
                     # The cube is to remove from the cover.
                     scube = nil
                     break
@@ -250,7 +263,7 @@ module LogicTools
             end
             if scube then
                 # The cube is to keep in the cofactor.
-                ncover << Cube.new(scube)
+                ncover << Cube.new(scube,false) # No need to clone scube.
             else
                 # Add an empty cube for keeping the index.
                 ncover << VoidCube.new(ncover.width)
@@ -276,23 +289,29 @@ module LogicTools
             # First in +dc+: if there is an "-" only cube, there cannot
             # be any minimal set cover.
             dc.each_cube do |cube|
-                return [] unless cube.each.find { |b| b != "-" }
+                # return [] unless cube.each.find { |b| b != "-" }
+                return [] unless cube.each.find { |b| b != 45 }
             end
             # Then in +cover+: each "-" only cube correspond to a cube in the
             # minimal set cover.
             result = []
             cover.each.with_index do |cube,i|
                 # print "cube=#{cube} i=#{i}\n"
-                result << i unless cube.each.find { |b| b != "-" }
+                # result << i unless cube.each.find { |b| b != "-" }
+                result << i unless cube.each.find { |b| b != 45 }
             end
             # print "result=#{result}\n"
             return [ result ]
         else
             # Compute the cofactors over the binate variables.
-            cf0 = cofactor_indexed(cover,binate,"0")
-            cf1 = cofactor_indexed(cover,binate,"1")
-            df0 = cofactor_indexed(dc,binate,"0")
-            df1 = cofactor_indexed(dc,binate,"1")
+            # cf0 = cofactor_indexed(cover,binate,"0")
+            cf0 = cofactor_indexed(cover,binate,48)
+            # cf1 = cofactor_indexed(cover,binate,"1")
+            cf1 = cofactor_indexed(cover,binate,49)
+            # df0 = cofactor_indexed(dc,binate,"0")
+            df0 = cofactor_indexed(dc,binate,48)
+            # df1 = cofactor_indexed(dc,binate,"1")
+            df1 = cofactor_indexed(dc,binate,49)
             # Process each cofactor and merge their results
             return [ minimal_set_covers(cf0,df0), minimal_set_covers(cf1,df1) ].flatten(1)
         end
@@ -349,7 +368,8 @@ module LogicTools
         red_par_sets.each do |sets|
             sets.each do |set|
                 row = "0" * red_par.size
-                set.each { |i| row[i] = "1" }
+                # set.each { |i| row[i] = "1" }
+                set.each { |i| row.setbyte(i,49) }
                 matrix << row
             end
         end
@@ -440,7 +460,8 @@ module LogicTools
     #  The cost of the cover is sum of the number of variable of each cube.
     def cost(cover)
         return cover.each_cube.reduce(0) do |sum, cube|
-            sum + cube.each_bit.count { |b| b != "-" }
+            # sum + cube.each_bit.count { |b| b != "-" }
+            sum + cube.each_bit.count { |b| b != 45 }
         end
     end
 
