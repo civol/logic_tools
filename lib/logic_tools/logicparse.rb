@@ -23,7 +23,10 @@ module LogicTools
         rule(:fal) { str("0") }
         # Variable
         # rule(:var) { match('[A-Za-uw-z]') }
-        rule(:var) { match('[A-Za-z]') }
+        rule(:var) do
+            match('[A-Za-z]') |
+            str("{") >> ( match('[a^Za-z]').repeat ) >> str("}")
+        end
         # And operator
         # rule(:andop) { str("&&") | match('[&\.\*^]') }
         rule(:andop) { str(".") }
@@ -50,7 +53,11 @@ module LogicTools
         # Terminal rules
         rule(:tru => simple(:tru)) { NodeTrue.new() }
         rule(:fal => simple(:fal)) { NodeFalse.new() }
-        rule(:var => simple(:var)) { NodeVar.new(var) }
+        rule(:var => simple(:var)) do
+            name = var.to_s
+            name = name[1..-2] if name.size > 1 # Remove the {} if any.
+            NodeVar.new(name)
+        end
         rule(:notop => simple(:notop)) { "!" }
 
         # Not rules
