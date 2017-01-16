@@ -4,9 +4,12 @@ LogicTools is a set of command-line tools for processing logic expressions.
 The tools include:
 
  * __simplify\_qm__:  for simplifying a logic expression.
+ * __simplify\_es__:  for simplifying a logic expression (much more efficient than simplify_qm).
  * __std\_conj__:  for computing the conjunctive normal form of a logic expression.
  * __std\_dij__:   for computing the disjunctive normal form a of logic expression.
  * __truth\_tbl__: for generating the truth table of a logic expression.
+ * __is\_tautolofy__: for checking if a logic expression is a tautology or not.
+ * __complement__: for computing the complement of a logic expression.
 
 
 ## Installation
@@ -37,7 +40,7 @@ Multiple expressions stored into a file can also be processed as follows:
 
 The logical expression is an expression where:
 
-* a logical variable is represented by a single alphabetical character (hence there is in total 56 possible variables);
+* a logical variable is represented by a single alphabetical character (hence there is in total 56 possible variables), or a string of alphabetical characters enclosed by curly brackets.
 * a logical OR is represented by a '+' character;
 * a logical AND is represented by a '.' character (but it can be omitted);
 * a logical NOT is represented by a '~' or a '!' character;
@@ -54,6 +57,7 @@ For instance the followings are valid logical expression using the a,b and c var
     "a.b.c"
     "a+b+!c"
     "a~(b+~c)"
+    "{foo}+{bar}"
 
 Finally, here are a few examples of LogicTool usage:
 
