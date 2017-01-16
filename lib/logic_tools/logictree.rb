@@ -614,6 +614,7 @@ module LogicTools
         #  --
         #  TODO consider the X~X and X+~X cases.
         def reduce
+            # print "reducing #{self}\n"
             # The operator used for the factors
             fop = @op == :and ? :or : :and
             # Gather the terms to sorted nodes
@@ -626,7 +627,8 @@ module LogicTools
             terms.each_with_index do |term0,i|
                 skipped = false
                 terms.each_with_index do |term1,j|
-                    next if (i==j) # Same term
+                    next if (term0 == term1) # Same term, duplicates will be
+                                             # removed after
                     # Checks the X~X or X+~X cases.
                     if ( term0.op == :not and term0.child == term1 ) or
                        ( term1.op == :not and term1.child == term0 ) then
@@ -640,8 +642,14 @@ module LogicTools
                     #     skipped = true
                     #     break
                     # end
-                    if term1.cover?(term0) then
-                        # term1 covers term0 skip term0.
+                    if term0.op == :and and term1.cover?(term0) then
+                        # print "#{term1} is covering #{term0}\n"
+                        # term1 covers term0 skip term0 for AND.
+                        skipped = true
+                        # break
+                    elsif term0.op == :or and term0.cover?(term1) then
+                        # print "#{term0} is covering #{term1}\n"
+                        # term0 covers term1 skip term0 for OR.
                         skipped = true
                         # break
                     end
@@ -650,6 +658,7 @@ module LogicTools
             end
             # Avoid duplicates
             nchildren.uniq!
+            # print "reduced nchildren=#{nchildren}\n"
             # Generate the result
             if (nchildren.size == 1)
                 return nchildren[0]
@@ -687,6 +696,7 @@ module LogicTools
         ## Creates a new tree where the current node is distributed over +node+
         #  according to the +dop+ operator.
         def distribute(dop,node) # :nodoc:
+            # print "distrubte with self=#{self} and node=#{node}\n"
             fop = dop == :and ? :or : :and
             # print "dop=#{dop} fop=#{fop} self.op=#{@op}\n"
             if (@op == dop) then
@@ -695,6 +705,7 @@ module LogicTools
             else
                 # self operator if fop
                 if (node.op == fop) then
+                    # print "(a+b)(c+d) case\n"
                     # node operator is also fop: (a+b)(c+d) or ab+cd case
                     nchildren = []
                     self.each do |child0|
@@ -707,10 +718,12 @@ module LogicTools
                     end
                     return NodeNary.make(fop,*nchildren).flatten
                 else
+                    # print "(a+b)c case\n"
                     # node operator is not fop: (a+b)c or ab+c case
                     nchildren = self.map do |child|
                         NodeNary.make(dop,child,node).flatten
                     end
+                    # print "nchildren=#{nchildren}\n"
                     return NodeNary.make(fop,*nchildren).flatten
                 end
             end
@@ -748,6 +761,7 @@ module LogicTools
             nchildren = node.map {|child| child.to_sum_product(true) }
             # Distribute
             while(nchildren.size>1)
+                # print "nchildren=#{nchildren}\n"
                 dist = []
                 nchildren.each_slice(2) do |left,right|
                     if right then
