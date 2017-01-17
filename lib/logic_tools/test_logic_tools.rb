@@ -5,8 +5,8 @@
 ######################################################################
 
 # require 'minitest/autorun'
-require "logic_tools/logicsimplify_es.rb"
 require "logic_tools/logicgenerator.rb"
+require "logic_tools/logicconvert.rb"
 
 include LogicTools
 
@@ -18,6 +18,9 @@ class TestEspresso # < MiniTest::Unit::TestCase
     #  the cover.
     def initialize(seed = 0, deadline = Float::INFINITY,
                                volume = Float::INFINITY)
+        # Ensures ESPRESSO is used.
+        load "logic_tools/logicsimplify_es.rb"
+
         @seed = seed
         @deadline = deadline
         @volume = volume
@@ -83,6 +86,47 @@ class TestEspresso # < MiniTest::Unit::TestCase
         end
         return true
     end
+
+
+    ## Tests Quine Mac Cluskey on a given +tree+.
+    def test_qm(tree)
+        print "Quine Mc Cluskey algorithm on expression=[#{tree}]...\n"
+        simple = tree.simplify()
+        print "result: [#{tree}]\n"
+        cover = tree.to_cover
+        check0 = (cover + simple.complement).is_tautology?
+        # check0 = same_truth_table?(cover,simple)
+        # assert_equal(true,check0)
+        print "check 0 = #{check0}\n"
+        raise "Test failure" unless check0
+        check1 = (cover.complement + simple).is_tautology?
+        # assert_equal(true,check1)
+        print "check 1 = #{check1}\n"
+        raise "Test failure" unless check1
+        return true
+    end
+
+    ## Tests the implementation of the espresso algorithm on each
+    #  possible 1-cube cover of 4 variables.
+    #
+    #  Test only on cover if a +test+ number is given.
+    def test_qm_all(test = nil)
+        generator = Generator.new("a","b","c","d")
+        generator.seed = @seed
+        if test then
+            test = test.to_i
+            print "Test #{test}: "
+            return test_qm(generator.make_std_conj(test))
+        else
+            generator.each_std_conj.with_index do |tree,i|
+                print "Test #{i}: "
+                return false unless test_qm(tree)
+            end
+            return true
+        end
+    end
+
+
 
 
     ## Tests espresso on a given +cover+.
@@ -156,6 +200,60 @@ class TestEspresso # < MiniTest::Unit::TestCase
             return false unless test_espresso_random(generator)
         end
         return true
+    end
+
+end
+
+
+## Class for testing the implementation Quine Mc Cluskey algorithm.
+class TestQM
+
+    ## Creates the tester with a +seed+ for random generation.
+    def initialize(seed = 0)
+        # Ensures QM is used.
+        load "logic_tools/logicsimplify_qm.rb"
+        @seed = seed
+    end
+
+    ## Tests Quine Mac Cluskey on a given +tree+.
+    def test_qm(tree,generator)
+        print "Quine Mc Cluskey algorithm on expression=[#{tree}]...\n"
+        simple = tree.simplify()
+        print "result: [#{simple}]\n"
+        cover = tree.to_cover(*generator.each_variable)
+        # print "cover=#{cover}\n"
+        simple_cover = simple.to_cover(*generator.each_variable)
+        # print "simple_cover=#{simple_cover}\n"
+        check0 = (cover + simple_cover.complement).is_tautology?
+        # check0 = same_truth_table?(cover,simple)
+        # assert_equal(true,check0)
+        print "check 0 = #{check0}\n"
+        raise "Test failure" unless check0
+        check1 = (cover.complement + simple_cover).is_tautology?
+        # assert_equal(true,check1)
+        print "check 1 = #{check1}\n"
+        raise "Test failure" unless check1
+        return true
+    end
+
+    ## Tests the implementation of the espresso algorithm on each
+    #  possible 1-cube cover of 4 variables.
+    #
+    #  Test only on cover if a +test+ number is given.
+    def test_qm_all(test = nil)
+        generator = Generator.new("a","b","c","d")
+        generator.seed = @seed
+        if test then
+            test = test.to_i
+            print "Test #{test}: "
+            return test_qm(generator.make_std_conj(test),generator)
+        else
+            generator.each_std_conj.with_index do |tree,i|
+                print "Test #{i}: "
+                return false unless test_qm(tree,generator)
+            end
+            return true
+        end
     end
 
 end

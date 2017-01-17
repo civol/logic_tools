@@ -13,19 +13,27 @@ require "logic_tools/logiccover.rb"
 module LogicTools
 
     class Node
-        ## Converts to a cover.
-        def to_cover()
+        ## Converts to a cover of a boolean space based of +variables+.
+        #  
+        #  NOTE: the variables of the space are also extracted from +self+.
+        def to_cover(*variables)
             # Check the cases of trivial trees.
             if self.is_a?(NodeTrue) then
-                cover = Cover.new("all")
-                cover << Cube.new("-")
+                if variables.empty? then
+                    cover = Cover.new("all")
+                    cover << Cube.new("-")
+                else
+                    cover = Cover.new(*variables)
+                    cover << Cube.new("-"*variables.size)
+                end
                 return cover
             elsif self.is_a?(NodeFalse) then
-                return Cover.new()
+                return Cover.new(*variables)
             end
 
             # Get the variables for converting them to indexes in the cubes
-            vars = self.get_variables
+            vars = (variables + self.get_variables.map(&:to_s)).uniq
+            # print "vars=#{vars}\n"
             # Converts the tree rooted by self to a sum of products
             # (reduced to limit the number of cubes and their sizes).
             tree = self.to_sum_product.reduce
@@ -45,15 +53,24 @@ module LogicTools
                 return cover
             when :variable then
                 # Single variable
-                cover << Cube.new("1")
+                str = "-" * cover.width
+                index = vars.index(tree.variable.to_s)
+                str[index] = "1"
+                cover << Cube.new(str)
                 return cover
             when :not then
                 # Single complement of a variable
-                cover << Cube.new("0")
+                str = "-" * cover.width
+                index = vars.index(tree.child.variable.to_s)
+                str[index] = "0"
+                cover << Cube.new(str)
                 return cover
             end
 
             # Treat the other cases.
+
+            # Ensure we have a sum of product structure.
+            tree = [ tree ] unless tree.op == :or
 
             # Fill it with the cubes corresponding to each product
             tree.each do |product|
@@ -63,7 +80,7 @@ module LogicTools
                 str = "-"*vars.size
                 product.each do |lit|
                     if lit.is_a?(NodeNot) then
-                        index = vars.index(lit.child.variable)
+                        index = vars.index(lit.child.variable.to_s)
                         # The litteral is a not
                         if str[index] == "1" then
                             # But it was "1" previously, contradictory cube:
@@ -75,7 +92,7 @@ module LogicTools
                             str[index] = "0"
                         end
                     else
-                        index = vars.index(lit.variable)
+                        index = vars.index(lit.variable.to_s)
                         # The litteral is a variable
                         if str[index] == "0" then
                             # But it was "0" previously, contradictory cube:

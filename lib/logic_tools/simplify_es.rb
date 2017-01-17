@@ -32,6 +32,7 @@ each_input do |expr|
 
     # Simplify it
     simple = parsed.simplify
+    simple = simple.sort
     # print "Computation done\n"
  
     # Display the result

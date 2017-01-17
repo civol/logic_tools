@@ -113,6 +113,8 @@ module LogicTools
                     terms << make_minterm(i)
                 end
             end
+            # If no term, return a NodeFalse
+            return NodeFalse.new if terms.empty?
             # Generate and return the resulting sum.
             return NodeOr.new(*terms)
         end

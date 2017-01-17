@@ -7,6 +7,7 @@
 require 'set'
 
 require "logic_tools/logictree.rb"
+require "logic_tools/minimal_column_covers.rb"
 
 module LogicTools
 
@@ -252,6 +253,11 @@ module LogicTools
         #
         #  Uses the Quine-Mc Cluskey method.
         def simplify
+            # Step 0 checks the trivial cases.
+            if self.op == :true or self.op == :false then
+                return self.clone
+            end
+
             # Step 1: get the generators
             
             # Gather the minterms which set the function to 1 encoded as
@@ -324,54 +330,96 @@ module LogicTools
             # print "generators with covers:\n"
             # generators.each {|gen| print gen,": ", gen.covers,"\n" }
 
-            # Step 2: remove the redundancies
+            # Step 2: remove the redundancies by finding the minimal column
+            # sets cover from the generators.
             
-            # Select the generators using Petrick's method
-            # For that purpose treat the generators as variables
-            variables = generators.map {|gen| VarImp.new(gen) }
-            
-            # Group the variables by cover
+            # # Select the generators using Petrick's method
+            # # For that purpose treat the generators as variables
+            # variables = generators.map {|gen| VarImp.new(gen) }
+            # 
+            # # Group the variables by cover
+            # cover2gen = Hash.new { |h,k| h[k] = [] }
+            # variables.each do |var|
+            #     # print "var=#{var}, implicant=#{var.implicant}, covers=#{var.implicant.covers}\n"
+            #     var.implicant.covers.each { |cov| cover2gen[cov] << var }
+            # end
+            # # Convert this hierachical table to a product of sum
+            # # First the sum terms
+            # sums = cover2gen.each_value.map do |vars|
+            #     # print "vars=#{vars}\n"
+            #     if vars.size > 1 then
+            #         NodeOr.new(*vars.map {|var| NodeVar.new(var) })
+            #     else
+            #         NodeVar.new(vars[0])
+            #     end
+            # end
+            # # print "sums = #{sums.to_s}\n"
+            # # Then the product
+            # # expr = NodeAnd.new(*sums).uniq
+            # if sums.size > 1 then
+            #     expr = NodeAnd.new(*sums).reduce
+            # else
+            #     expr = sums[0]
+            # end
+            # # Convert it to a sum of product
+            # # print "expr = #{expr.to_s}\n"
+            # expr = expr.to_sum_product(true)
+            # # print "Now expr = #{expr.to_s} (#{expr.class})\n"
+            # # Select the smallest term (if several)
+            # if (expr.op == :or) then
+            #     smallest = expr.min_by do |term|
+            #         term.op == :and ? term.size : 1
+            #     end
+            # else
+            #     smallest = expr
+            # end
+            # # The corresponding implicants are the selected generators
+            # if smallest.op == :and then
+            #     selected = smallest.map {|term| term.variable.implicant }
+            # else
+            #     selected = [ smallest.variable.implicant ]
+            # end
+           
+            # Creates the matrix for looking for the minimal column cover:
+            # the rows stands for the covers and the columns stands for the
+            # generator. A "1" indicates a cover is obtained from the
+            # corresponding generator.
+            matrix = []
+            # Set the index table of the generators for faster lookup.
+            gen2index = {}
+            generators.each.with_index { |gen,i| gen2index[gen] = i }
+            # Group the generators by cover
             cover2gen = Hash.new { |h,k| h[k] = [] }
-            variables.each do |var|
-                # print "var=#{var}, implicant=#{var.implicant}, covers=#{var.implicant.covers}\n"
-                var.implicant.covers.each { |cov| cover2gen[cov] << var }
+            generators.each do |gen|
+                # print "gen=#{gen}, covers=#{gen.covers}\n"
+                gen.covers.each { |cover| cover2gen[cover] << gen }
             end
-            # Convert this hierachical table to a product of sum
-            # First the sum terms
-            sums = cover2gen.each_value.map do |vars|
-                # print "vars=#{vars}\n"
-                if vars.size > 1 then
-                    NodeOr.new(*vars.map {|var| NodeVar.new(var) })
-                else
-                    NodeVar.new(vars[0])
-                end
+            # Fill the matrix with it.
+            cover2gen.each do |cover,gens|
+                # print "cover=#{cover}, gens=#{gens}\n"
+                row = "0" * generators.size
+                # Set the "1" (49 in byte).
+                gens.each { |gen| row.setbyte(gen2index[gen],49) }
+                matrix << row
             end
-            # print "sums = #{sums.to_s}\n"
-            # Then the product
-            # expr = NodeAnd.new(*sums).uniq
-            if sums.size > 1 then
-                expr = NodeAnd.new(*sums).reduce
-            else
-                expr = sums[0]
+            # Find the minimal column cover.
+            # print "matrix=#{matrix}\n"
+            cols = minimal_column_covers(matrix, true) 
+
+            # Get the selected generators (implicants).
+            selected = cols.map { |col| generators[col] }
+
+            # Handle the trivial case
+            if selected.empty? then
+                # false case.
+                return NodeFlase.new
+            elsif selected.size == 1 and 
+                ! selected[0].each.find {|c| c == "1" or c == "0" }
+                # true case
+                return NodeTrue.new
             end
-            # Convert it to a sum of product
-            # print "expr = #{expr.to_s}\n"
-            expr = expr.to_sum_product(true)
-            # print "Now expr = #{expr.to_s} (#{expr.class})\n"
-            # Select the smallest term (if several)
-            if (expr.op == :or) then
-                smallest = expr.min_by do |term|
-                    term.op == :and ? term.size : 1
-                end
-            else
-                smallest = expr
-            end
-            # The corresponding implicants are the selected generators
-            if smallest.op == :and then
-                selected = smallest.map {|term| term.variable.implicant }
-            else
-                selected = [ smallest.variable.implicant ]
-            end
+
+            # The other cases
 
             # Sort by variable order
             selected.sort_by! { |implicant| implicant.bits }

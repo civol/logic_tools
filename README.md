@@ -101,6 +101,6 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 
 ## To do
-* Update the code of simplify_qm so that it uses the optimized LogicTool::Cover class and minimal\_column\_covers methods.
+* Update the code of simplify_qm so that it uses the optimized LogicTool::Cover class.
 
 

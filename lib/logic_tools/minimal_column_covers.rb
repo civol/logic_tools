@@ -120,9 +120,13 @@ module LogicTools
         def solve()
             # Solve the problem throughly.
             begin
-                Timeout::timeout(@deadline) {
-                    self.branch(0)
-                }
+                if @deadline != Float::INFINITY then
+                    Timeout::timeout(@deadline) {
+                        self.branch(0)
+                    }
+                else
+                        self.branch(0)
+                end
             rescue Timeout::Error
                 # Time out, is there a solution?
                 # print "Timeout!\n"

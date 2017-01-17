@@ -25,7 +25,7 @@ module LogicTools
         # rule(:var) { match('[A-Za-uw-z]') }
         rule(:var) do
             match('[A-Za-z]') |
-            str("{") >> ( match('[a^Za-z]').repeat ) >> str("}")
+            str("{") >> ( match('[0-9A-Za-z]').repeat ) >> str("}")
         end
         # And operator
         # rule(:andop) { str("&&") | match('[&\.\*^]') }
