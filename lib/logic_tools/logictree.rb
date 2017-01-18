@@ -781,7 +781,7 @@ module LogicTools
             end
         end
 
-        ## Convert to a string.
+        ## Converts to a string.
         def to_s # :nodoc:
             return @str if @str
             @str = ""

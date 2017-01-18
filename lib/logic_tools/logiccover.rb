@@ -13,7 +13,7 @@ module LogicTools
     #  NOTE: cubes are crutial for the performance of the implementation
     #  of the simplifying algorithm.
     #  Hence they are internally represented as strings, since they are
-    #  much more energy efficient and usually faster than arrays.
+    #  much more memory efficient and usually faster than arrays.
     #
     #  Then there are two interfaces:
     #  * The standard interface is based on strings and substrings only and
