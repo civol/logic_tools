@@ -9,9 +9,10 @@ require "logic_tools/traces.rb"
 module LogicTools
 
 
-
+    #--
     # Enhances the Cube class with methods for applying the
-    # Espresso algorithm
+    # Espresso algorithm.
+    #++
     class Cube
 
         ## Computes the blocking matrix relatively to an +off+ cover.
@@ -530,8 +531,10 @@ module LogicTools
     end
 
 
+    #--
     # Enhances the Cover class with simplifying using the Espresso
     # algorithm.
+    #++
     class Cover
 
         include LogicTools::Traces
@@ -713,8 +716,10 @@ module LogicTools
     end
 
 
+    #--
     # Enhances the Node class with expression simplifying using the
     # Espresso algorithm.
+    #++
     class Node
 
         ## Generates an equivalent but simplified representation of the

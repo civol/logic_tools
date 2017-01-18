@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+######################################################################
+#      Computes (quickly) the complement of a logic expression       #
+######################################################################
+
+begin
+    require 'rubygems'
+    gem 'logic_tools'
+rescue LoadError
+end
+
+load "logic_tools/complement.rb"

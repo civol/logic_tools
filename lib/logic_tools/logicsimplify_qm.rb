@@ -13,7 +13,7 @@ module LogicTools
 
 
     ## Converts the array of variables +var+ to a bit vector according to
-    #  their values
+    #  their values.
     def vars2int(vars)
         res = ""
         vars.each_with_index do |var,i|
@@ -27,7 +27,7 @@ module LogicTools
 
 
     ##
-    # Represents a logic implicant
+    # Represents a logic implicant.
     class Implicant
         include Enumerable
 
@@ -76,7 +76,7 @@ module LogicTools
             @bits
         end
 
-        def inspect #:nodoc:
+        def inspect # :nodoc:
             @bits.dup
         end
 
@@ -217,35 +217,37 @@ module LogicTools
         end
     end
 
-    ## 
-    #  Describes a pseudo variable associated to an implicant.
-    #
-    #  Used for the Petrick's method.
-    class VarImp < Variable
-        @@base = 0 # The index of the VarImp for building the variable names
+    # ## 
+    # #  Describes a pseudo variable associated to an implicant.
+    # #
+    # #  Used for the Petrick's method.
+    # class VarImp < Variable
+    #     @@base = 0 # The index of the VarImp for building the variable names
 
-        ## The implicant the pseudo variable is associated to.
-        attr_reader :implicant
+    #     ## The implicant the pseudo variable is associated to.
+    #     attr_reader :implicant
 
-        ## Creates a pseudo variable assoctiated to an +implicant+.
-        def initialize(implicant)
-            # Create the name of the variable
-            name = nil
-            begin
-                name = "P" + @@base.to_s
-                @@base += 1
-            end while Variable.exists?(name)
-            # Create the variable
-            super(name)
-            # Associate it with the implicant
-            @implicant = implicant
-            implicant.var = self
-        end
-    end
+    #     ## Creates a pseudo variable assoctiated to an +implicant+.
+    #     def initialize(implicant)
+    #         # Create the name of the variable
+    #         name = nil
+    #         begin
+    #             name = "P" + @@base.to_s
+    #             @@base += 1
+    #         end while Variable.exists?(name)
+    #         # Create the variable
+    #         super(name)
+    #         # Associate it with the implicant
+    #         @implicant = implicant
+    #         implicant.var = self
+    #     end
+    # end
 
 
 
-    ## Enhances the Node class with expression simplifying.
+    #--
+    # Enhances the Node class with expression simplifying.
+    #++
     class Node
         
         ## Generates an equivalent but simplified representation of the
