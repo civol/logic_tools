@@ -76,6 +76,8 @@ module LogicTools
 
         include Enumerable
 
+        alias dup clone
+
         ## Gets a array containing the variables of the tree sorted by name.
         def get_variables()
             result = self.get_variablesRecurse
@@ -741,8 +743,8 @@ module LogicTools
         end
 
         ## Duplicates the node.
-        def dup # :nodoc:
-            return NodeAnd.new(*@children.map(&:dup))
+        def clone # :nodoc:
+            return NodeAnd.new(*@children.map(&:clone))
         end
 
         ## Computes the value of the node.
@@ -809,8 +811,8 @@ module LogicTools
         end
 
         ## Duplicates the node.
-        def dup # :nodoc:
-            return NodeOr.new(*@children.map(&:dup))
+        def clone # :nodoc:
+            return NodeOr.new(*@children.map(&:clone))
         end
 
         ## Computes the value of the node.
@@ -922,8 +924,8 @@ module LogicTools
         end
 
         ## Duplicates the node.
-        def dup # :nodoc:
-            return NodeNot.new(@child.dup)
+        def clone # :nodoc:
+            return NodeNot.new(@child.clone)
         end
 
         ## Computes the value of the node.
