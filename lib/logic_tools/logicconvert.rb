@@ -36,7 +36,7 @@ module LogicTools
             # print "vars=#{vars}\n"
             # Converts the tree rooted by self to a sum of products
             # (reduced to limit the number of cubes and their sizes).
-            tree = self.to_sum_product.reduce
+            tree = self.to_sum_product.flatten.reduce
             # print "tree=#{tree}\n"
             
             # Create an empty cover.
@@ -72,6 +72,8 @@ module LogicTools
             # Ensure we have a sum of product structure.
             tree = [ tree ] unless tree.op == :or
 
+            # print "tree=#{tree}\n"
+
             # Fill it with the cubes corresponding to each product
             tree.each do |product|
                 product = [ product ] unless product.is_a?(NodeNary)
@@ -92,6 +94,7 @@ module LogicTools
                             str[index] = "0"
                         end
                     else
+                        # print "lit=#{lit}\n"
                         index = vars.index(lit.variable.to_s)
                         # The litteral is a variable
                         if str[index] == "0" then
