@@ -15,3 +15,11 @@
     -> Crashes
     
 *FIXED*
+
+---
+=== Bug 3
+   # simpligy_es "a(b+c(d+e(f+g)))"
+
+   -> Crashes
+
+*FIXED*

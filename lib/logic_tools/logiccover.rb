@@ -60,7 +60,7 @@ module LogicTools
         #
         #  +input+ is assumed to be an integer.
         #  Returns the evaluation result as a boolean.
-        def eval(input)
+        def eval_input(input)
             result = true
             @bits.each_byte.with_index do |bit,i|
                 if bit == 49 then
@@ -446,9 +446,9 @@ module LogicTools
         #
         #  +input+ is assumed to be an integer.
         #  Returns the evaluation result as a boolean.
-        def eval(input)
+        def eval_input(input)
             # Evaluates each cube, if one results in true the result is true.
-            return !!@cubes.each.find {|cube| cube.eval(input) }
+            return !!@cubes.each.find {|cube| cube.eval_input(input) }
         end
 
         ## Converts to a string.
@@ -760,7 +760,7 @@ module LogicTools
                 # return false if num_minterms < 2**self.width
                 # # Last check: the truth table.
                 # (2**self.width).times do |input|
-                #     return false if self.eval(input) == 0
+                #     return false if self.eval_input(input) == 0
                 # end
             else
                 # Compute the cofactors over the binate variables.

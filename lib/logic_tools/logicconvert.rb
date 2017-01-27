@@ -36,7 +36,7 @@ module LogicTools
             # print "vars=#{vars}\n"
             # Converts the tree rooted by self to a sum of products
             # (reduced to limit the number of cubes and their sizes).
-            tree = self.to_sum_product.flatten.reduce
+            tree = self.to_sum_product.reduce
             # print "tree=#{tree}\n"
             
             # Create an empty cover.

@@ -7,6 +7,7 @@
 # require 'minitest/autorun'
 require "logic_tools/logicgenerator.rb"
 require "logic_tools/logicconvert.rb"
+require "logic_tools/logicparse.rb"
 
 include LogicTools
 
@@ -30,7 +31,7 @@ class TestEspresso # < MiniTest::Unit::TestCase
     def truth_tautology(cover)
         ## Generate each possible input and test it on the cover.
         (2**(cover.width)).times do |i|
-            return false unless cover.eval(i)
+            return false unless cover.eval_input(i)
         end
         return true
     end
@@ -76,13 +77,36 @@ class TestEspresso # < MiniTest::Unit::TestCase
         return true
     end
 
+    # ## Tests the conversion to sum of product of an expression.
+    # def test_to_sum_product_random(dimensions = 4)
+    #     # Create the variables.
+    #     base = "`"
+    #     variables = dimensions.times.map { |i| base.next!.clone }
+    #     # Create the generator.
+    #     generator = Generator.new(*variables)
+    #     generator.seed = @seed
+    #     # Creates the expression.
+    #     expression = generator.random_expression
+    #     # Convert it to a tree.
+    #     tree = string2logic(expression)
+    #     # Convert it.
+    #     sumprod = tree.to_sum_product
+    #     # Compare the truth tables.
+    #     # check = same_truth_table?(tree,sumprod)
+    #     # HOW TO CHECK? SOME VARIABLES MAY HAVE DISAPEARED...
+    #     # assert_equal(true,check)
+    #     print "check = #{check}\n"
+    #     raise "Test failure" unless check
+    #     return true
+    # end
+
 
     ## Checks if covers have the same truth table.
     def same_truth_table?(cover0,cover1)
         return false unless cover0.width == cover1.width
         # Check for each entry.
         (2**cover0.width).times do |i|
-            return false unless cover0.eval(i) == cover1.eval(i)
+            return false unless cover0.eval_input(i) == cover1.eval_input(i)
         end
         return true
     end
@@ -134,8 +158,8 @@ class TestEspresso # < MiniTest::Unit::TestCase
         print "ESPRESSO on cover=[#{cover.to_s}]...\n"
         simple = cover.simplify(@deadline,@volume)
         print "result: [#{simple}]\n"
-        check0 = (cover + simple.complement).is_tautology?
-        # check0 = same_truth_table?(cover,simple)
+        # check0 = (cover + simple.complement).is_tautology?
+        check0 = same_truth_table?(cover,simple)
         # assert_equal(true,check0)
         print "check 0 = #{check0}\n"
         raise "Test failure" unless check0

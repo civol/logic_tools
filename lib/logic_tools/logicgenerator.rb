@@ -49,7 +49,7 @@ module LogicTools
             @rate = rate
         end
 
-        ## Iterates over the variables of the cube
+        ## Iterates over the variables of the generator.
         #
         #  Returns an enumberator if no block is given
         def each_variable(&blk)
@@ -57,6 +57,60 @@ module LogicTools
             return to_enum(:each_variable) unless block_given?
             # Block given? Apply it.
             @variables.each(&blk)
+        end
+
+
+        ## Creates a random logic expression.
+        def random_expression
+            expression = ""
+            pre = :"(" # The previous element type: start of expression
+                       #    is equivalent to a opened parenthesis.
+            par = 0    # The number of opened parenthesis
+            @random.rand(0..(@max-1)).times do
+                choice = @random.rand(@variables.size+4)
+                # print "par=#{par} pre=#{pre}\n"
+                case choice
+                when 0 then
+                    expression << "("
+                    par += 1
+                    pre = :"("
+                when 1 then
+                    if ( par > 0 and ( pre==:v or pre==:")") )
+                        expression << ")" 
+                        par -= 1
+                        pre = :")"
+                    end
+                when 3 then
+                    if ( pre != :"(" and pre != :+ and pre != :~ )
+                        expression << "+" 
+                        pre = :+
+                    end
+                when 4 then
+                    expression << "~"
+                    pre = :~
+                else
+                    var = @variables[choice-4]
+                    if var.size > 1
+                        expression << "{" + var + "}"
+                    else
+                        expression << var
+                    end
+                    pre = :v
+                end
+                # print "expression = #{expression}\n"
+            end
+            # Remove the last invalid character.
+            while ["~","(","+"].include?(expression[-1]) do
+                par -= 1 if expression[-1] == "("
+                expression.chop!
+            end
+            # Close the remaining opened parenthesis.
+            while par > 0 do
+                par -=1
+                expression << ")"
+            end
+            # Return the resulting expression.
+            return expression
         end
 
 

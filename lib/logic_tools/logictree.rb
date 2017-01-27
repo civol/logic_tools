@@ -105,6 +105,15 @@ module LogicTools
             0
         end
 
+        ## Evalutes the tree on a binary +input+.
+        def eval_input(input)
+            self.get_variables.each_with_index do |var,i|
+                val = input[vars.size-i-1]
+                var.value = val
+            end
+            return self.eval
+        end
+
         ## Iterates on each line of the truth table obtained from the tree
         #  rooted by current node.
         #
@@ -259,6 +268,7 @@ module LogicTools
         #
         #  Argument +flattened+ tells if the tree is already flattend
         def to_sum_product(flattened = false)
+            # print "NODE to_sum_product with tree=#{self}\n"
             return self.dup
         end
 
@@ -671,13 +681,17 @@ module LogicTools
 
         ## Flatten ands, ors and nots.
         def flatten # :nodoc:
-            return NodeNary.make(@op,*(@children.reduce([]) do |nchildren,child|
+            # print "flatten with #{self}\n"
+            res = NodeNary.make(@op,*(@children.reduce([]) do |nchildren,child|
                 if (child.op == self.op) then
-                    nchildren.push(*child)
+                    # nchildren.push(*child)
+                    nchildren.push(*child.each)
                 else
                     nchildren << child
                 end
             end)).reduce
+            # print "result #{res}\n"
+            return res
         end
 
         ## Creates a new tree where all the *and*, *or* and *not* operators 
@@ -688,7 +702,8 @@ module LogicTools
             return NodeNary.make(@op,*(@children.reduce([]) do |nchildren,child|
                 child = child.flatten_deep
                 if (child.op == self.op) then
-                    nchildren.push(*child)
+                    # nchildren.push(*child)
+                    nchildren.push(*child.each)
                 else
                     nchildren << child
                 end
@@ -698,7 +713,7 @@ module LogicTools
         ## Creates a new tree where the current node is distributed over +node+
         #  according to the +dop+ operator.
         def distribute(dop,node) # :nodoc:
-            # print "distrubte with self=#{self} and node=#{node}\n"
+            # print "distribute with self=#{self} and node=#{node}\n"
             fop = dop == :and ? :or : :and
             # print "dop=#{dop} fop=#{fop} self.op=#{@op}\n"
             if (@op == dop) then
@@ -756,11 +771,18 @@ module LogicTools
         #
         #  Argument +flattened+ tells if the tree is already flattend
         def to_sum_product(flattened = false) # :nodoc:
+            # print "AND to_sum_product with tree=#{self}\n"
             # Flatten if required
             node = flattened ? self : self.flatten_deep
             return node unless node.is_parent?
             # Convert each child to sum of product
-            nchildren = node.map {|child| child.to_sum_product(true) }
+            nchildren = node.map do |child|
+                # print "recurse to_sum_product for child=#{child}\n"
+                # res = child.to_sum_product(true)
+                # print "child=#{child} -> res=#{res}\n"
+                # res
+                child.to_sum_product(true)
+            end
             # Distribute
             while(nchildren.size>1)
                 # print "nchildren=#{nchildren}\n"
@@ -773,14 +795,17 @@ module LogicTools
                         dist << left
                     end
                 end
+                # print "dist=#{dist}\n"
                 nchildren = dist
             end
-            # Generate the or
-            if (nchildren.size > 1)
-                return NodeOr.new(*nchildren)
-            else
-                return nchildren[0]
-            end
+            # print "result=#{nchildren}\n"
+            # # Generate the or
+            # if (nchildren.size > 1)
+            #     return NodeOr.new(*nchildren)
+            # else
+            #     return nchildren[0]
+            # end
+            return nchildren[0].flatten
         end
 
         ## Converts to a string.
@@ -824,8 +849,9 @@ module LogicTools
         #
         #  Argument +flattened+ tells if the tree is already flattend
         def to_sum_product(flattened = false) # :nodoc:
+            # print "OR to_sum_product with tree=#{self}\n"
             return NodeOr.new(
-                *@children.map {|child| child.to_sum_product(flatten) } )
+                *@children.map {|child| child.to_sum_product(flattened) } ).flatten
         end
 
         ## Converts to a string.
@@ -963,6 +989,7 @@ module LogicTools
         #
         #  Argument +flattened+ tells if the tree is already flattend
         def to_sum_product(flattened = false) # :nodoc:
+            # print "NOT to_sum_product with tree=#{self}\n"
             # return NodeNot.new(@child.to_sum_product(flatten))
             # Flatten deeply if required.
             nnode = flattened ? self : self.flatten_deep
