@@ -8,7 +8,7 @@ The tools include:
  * __std\_conj__:  for computing the conjunctive normal form of a logic expression.
  * __std\_dij__:   for computing the disjunctive normal form a of logic expression.
  * __truth\_tbl__: for generating the truth table of a logic expression.
- * __is\_tautolofy__: for checking if a logic expression is a tautology or not.
+ * __is\_tautology__: for checking if a logic expression is a tautology or not.
  * __complement__: for computing the complement of a logic expression.
 
 
