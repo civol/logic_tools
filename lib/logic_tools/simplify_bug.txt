@@ -18,8 +18,16 @@
 
 ---
 === Bug 3
-   # simpligy_es "a(b+c(d+e(f+g)))"
+   # simplify_es "a(b+c(d+e(f+g)))"
 
    -> Crashes
+
+*FIXED*
+
+---
+=== Bug 4
+   # simplify_es "(~b+c)(~a+~b+~c)"
+
+   -> Carshes
 
 *FIXED*

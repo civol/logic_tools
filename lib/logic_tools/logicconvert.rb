@@ -76,6 +76,11 @@ module LogicTools
 
             # Fill it with the cubes corresponding to each product
             tree.each do |product|
+                next if product.is_a?(NodeFalse)
+                if product.is_a?(NodeTrue) then
+                    cover.add(Cube.new("-"*vars.size))
+                    next
+                end
                 product = [ product ] unless product.is_a?(NodeNary)
                 # print "product=#{product}\n"
                 # Generate the bit string of the cube
